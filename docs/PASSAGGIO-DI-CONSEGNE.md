@@ -5,7 +5,51 @@ Lingua di lavoro: italiano. L'utente vuole: prima verificare e progettare, poi i
 poi consegnare UNA volta (niente fix a tentativi, niente "prova questo e vediamo"). Le modifiche vanno sempre unite su main,
 non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
 
-## Stato del repository
+## Aggiornamento del 13 novembre 2026: app nativa, firma e installazione in corso
+- main = 3.0.0 (PR #11, commit 3c8a253): collaudo completo rieseguito prima del merge (ES5, servizio, launcher, 42 verifiche
+  dell'app nativa), Action di purge riuscita. Il modulo TizenBrew sulla TV passa da solo alla 3.0.0 alla prossima apertura.
+- Pacchetto costruito da main: `node tools/build-native.js` → dist/MilanoHome-unsigned.wgt (1101 KB, ref 3c8a253), NON firmato.
+- Decisioni dell'utente (13/11, in ordine): prima Tizen Studio, poi, saputo che su Mac arm64 richiede Rosetta 2, **niente
+  Rosetta: si usa `reisxd/tizen.js`** (percorso letto nei sorgenti, in docs/APP-NATIVA.md). Il lavoro continua in una sessione
+  LOCALE di Claude Code sul Mac, che esegue i comandi da sé: l'utente non vuole più fare da tramite a ogni comando. Resta la
+  regola iniziale: conferma esplicita prima di OGNI modifica alla TV (le letture non la richiedono).
+- Mac: macOS 27.0.1, arm64, IP 192.168.1.30 (en0); git e Node (Homebrew) presenti; niente Java, niente Tizen Studio, niente sdb,
+  niente Rosetta. TV: QE75QN90AATXZT, in rete locale; IP visto nella Diagnostica del 31/10: 192.168.1.41 (da riverificare).
+- Passi per la sessione locale, nell'ordine:
+  1) LETTURA: `curl http://<TV>:8001/api/v2/` → annotare developerMode e developerIP (potrebbe anche spiegare perché l'autoavvio
+     di TizenBrew non parte, punto 6 più sotto);
+  2) preparare gli strumenti in una cartella fuori dal repository (`npm i github:reisxd/tizen.js adbhost`) e uno script Node per
+     DUID, copia file e installazione, ricalcato su `tizenbrew-installer-service` (Buxton2.js, FilePusher.js,
+     PackageInstallation.js); provarlo a secco dove possibile;
+  3) MODIFICA ALLA TV (la fa l'utente dal telecomando, dopo conferma): IP del computer = 192.168.1.30, riavvio;
+  4) LETTURA: DUID;
+  5) certificato Samsung (l'utente accede al suo account e incolla il JSON), chiavi fuori dal repository;
+  6) ricostruire il pacchetto da main (`node tools/build-native.js`) e firmarlo; controllare il contenuto del `.wgt` firmato;
+  7) MODIFICA ALLA TV (dopo conferma): device-profile.xml;
+  8) MODIFICA ALLA TV (dopo conferma): installazione;
+  9) le cinque verifiche sulla TV elencate in APP-NATIVA.md, una alla volta;
+  10) MODIFICA ALLA TV (dopo conferma): IP del computer rimesso com'era, riavvio; verificare che TizenBrew funzioni ancora.
+- ESITO della sessione locale (13/11): TV a 192.168.1.10 (cavo; non più .41), developerMode 1, IP del computer era 127.0.0.1.
+  Strumenti in ~/.milanohome-tools (tizen.js @45b0010, adbhost, tv.js = DUID/copia/installazione, make-cert.js). L'utente ha
+  messo l'IP del computer a 192.168.1.30 e riavviato: DUID RLCEPZPTZ35ZE. Certificato Samsung (Public, scade 13/11/2027) in
+  ~/.milanohome-cert (author.p12, distributor.p12, password.txt: fuori dal repository, DA CONSERVARE); nessun problema TLS.
+  Pacchetto da main (3c8a253) firmato con `tizenjs build` e INSTALLATO con `vd_appinstall MilanoHome` ("install completed");
+  la TV lo elenca (MilanoHome.Launcher 3.0.0). Il formato di firma di tizen.js (URI con %2F, SHA-512) è quindi accettato da
+  Tizen 6. device-profile.xml NON copiato sulla TV: non è servito (e il file prodotto da tizen.js è una copia del certificato).
+  Restano: le cinque verifiche sulla TV; rimettere l'IP del computer a 127.0.0.1 e riavviare; verificare TizenBrew.
+- Verifiche sulla TV (13/11): 1) installazione ok; 2) servizio ok v3.0.0 app nativa, moduli di TizenBrew letti; 5) tasti canale
+  ok. Ispezione remota: `0 kill MilanoHome` poi `0 debug MilanoHome.Launcher` via sdb dà la porta CDP (~/.milanohome-tools/cdp.js).
+  DIFETTO trovato e corretto nella 3.0.1: sulla TV /apps impiega ~12 s (8 s di attesa del canale Smart Hub che non risponde + ~4 s
+  per 439 app), il launcher andava in timeout a 12 s senza riprovare e restava con la sola tile YouTube. Ora: 30 s, un secondo
+  tentativo, moduli mostrati subito, cartella dati in Diagnostica ("dati: ...").
+- Ancora aperti: 4) TizenTube dalla tile YouTube, verificabile solo con l'IP del computer a 127.0.0.1; canale telecomando
+  dall'app nativa: 8002/v2 → 101 e poi nessuna risposta per 30 s (sorgenti HDMI senza funzione); tasto Home → home Samsung
+  (previsto, vedi "Passi successivi" in APP-NATIVA.md). Sul Mac i test richiedono `ifconfig lo0 alias 127.0.0.2 up` (sudo).
+- Prima del 13/11 (sessione cloud): nessuna modifica alla TV. In questa sessione cloud l'esecuzione di `tizen.js` è stata bloccata (codice di terzi)
+  e `download.tizen.org` / `developer.samsung.com` non erano raggiungibili: nulla di quel percorso è stato eseguito, solo letto.
+- PR #12 (ramo claude/sweet-babbage-utar0a): questi documenti; in bozza, da completare con l'esito e unire alla fine.
+
+## Stato del repository (al 31 ottobre 2026)
 - main = 2.1.0: 2.0.0 (PR #5) + Action purge (PR #6, #9) + correzioni Codex 2.0.1 (PR #7) + 2.1.0 (canale v2/v3, ritorno con
   app control, prestazioni, orologio leggero, preferenze azzerate).
 - Storia: 8c58710 = 1.5.0 · 9e90648 = 1.5.1 · f7a8fce = 1.6.0 · 9bdfd45 = documentazione · 2.0.0 (PR #5).
