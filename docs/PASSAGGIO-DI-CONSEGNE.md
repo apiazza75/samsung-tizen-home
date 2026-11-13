@@ -9,19 +9,29 @@ non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
 - main = 3.0.0 (PR #11, commit 3c8a253): collaudo completo rieseguito prima del merge (ES5, servizio, launcher, 42 verifiche
   dell'app nativa), Action di purge riuscita. Il modulo TizenBrew sulla TV passa da solo alla 3.0.0 alla prossima apertura.
 - Pacchetto costruito da main: `node tools/build-native.js` → dist/MilanoHome-unsigned.wgt (1101 KB, ref 3c8a253), NON firmato.
-- Decisioni dell'utente: firma e installazione con Tizen Studio sul Mac (da installare); i comandi sul Mac li esegue l'utente uno
-  alla volta e riporta l'esito (le sessioni cloud non vedono la rete di casa; la cartella "Milano Home" del Mac è nell'elenco di
-  Remote Control ma non viene offerta alle sessioni cloud); conferma esplicita prima di OGNI modifica alla TV.
-- Passi, nell'ordine (dettagli in docs/APP-NATIVA.md): 1) stato del Mac (sistema, processore, strumenti presenti); 2) Tizen Studio
-  + estensioni Samsung; 3) Modalità sviluppatore sulla TV con l'IP del Mac (annotare prima il valore attuale: TizenBrew lo vuole a
-  127.0.0.1) e riavvio; 4) sdb connect e DUID; 5) certificato Samsung; 6) firma; 7) installazione; 8) le cinque verifiche sulla TV
-  elencate in APP-NATIVA.md; 9) IP del computer rimesso com'era.
-- Passo 1 fatto (13/11): Mac = macOS 27.0.1, processore Apple (arm64), IP 192.168.1.30 (en0); git e Node (Homebrew) presenti;
-  niente Java, niente Tizen Studio, niente sdb. Tizen Studio è fermo alla 6.1 (aprile 2025, ultima versione) ed è solo x86_64:
-  sul Mac serve Rosetta 2. Il certificato Samsung si crea solo dal Certificate Manager (accesso con account Samsung, niente CLI);
-  i pacchetti da aggiungere a un'installazione solo CLI sono `Certificate-Manager` e `cert-add-on` (da confermare con show-pkgs).
-- Fatto al 13/11: nessuna modifica alla TV. Da chiarire al passo 3: il valore attuale dell'IP del computer sulla TV potrebbe
-  spiegare perché l'autoavvio di TizenBrew non parte (punto 6 più sotto).
+- Decisioni dell'utente (13/11, in ordine): prima Tizen Studio, poi, saputo che su Mac arm64 richiede Rosetta 2, **niente
+  Rosetta: si usa `reisxd/tizen.js`** (percorso letto nei sorgenti, in docs/APP-NATIVA.md). Il lavoro continua in una sessione
+  LOCALE di Claude Code sul Mac, che esegue i comandi da sé: l'utente non vuole più fare da tramite a ogni comando. Resta la
+  regola iniziale: conferma esplicita prima di OGNI modifica alla TV (le letture non la richiedono).
+- Mac: macOS 27.0.1, arm64, IP 192.168.1.30 (en0); git e Node (Homebrew) presenti; niente Java, niente Tizen Studio, niente sdb,
+  niente Rosetta. TV: QE75QN90AATXZT, in rete locale; IP visto nella Diagnostica del 31/10: 192.168.1.41 (da riverificare).
+- Passi per la sessione locale, nell'ordine:
+  1) LETTURA: `curl http://<TV>:8001/api/v2/` → annotare developerMode e developerIP (potrebbe anche spiegare perché l'autoavvio
+     di TizenBrew non parte, punto 6 più sotto);
+  2) preparare gli strumenti in una cartella fuori dal repository (`npm i github:reisxd/tizen.js adbhost`) e uno script Node per
+     DUID, copia file e installazione, ricalcato su `tizenbrew-installer-service` (Buxton2.js, FilePusher.js,
+     PackageInstallation.js); provarlo a secco dove possibile;
+  3) MODIFICA ALLA TV (la fa l'utente dal telecomando, dopo conferma): IP del computer = 192.168.1.30, riavvio;
+  4) LETTURA: DUID;
+  5) certificato Samsung (l'utente accede al suo account e incolla il JSON), chiavi fuori dal repository;
+  6) ricostruire il pacchetto da main (`node tools/build-native.js`) e firmarlo; controllare il contenuto del `.wgt` firmato;
+  7) MODIFICA ALLA TV (dopo conferma): device-profile.xml;
+  8) MODIFICA ALLA TV (dopo conferma): installazione;
+  9) le cinque verifiche sulla TV elencate in APP-NATIVA.md, una alla volta;
+  10) MODIFICA ALLA TV (dopo conferma): IP del computer rimesso com'era, riavvio; verificare che TizenBrew funzioni ancora.
+- Fatto al 13/11: nessuna modifica alla TV. In questa sessione cloud l'esecuzione di `tizen.js` è stata bloccata (codice di terzi)
+  e `download.tizen.org` / `developer.samsung.com` non erano raggiungibili: nulla di quel percorso è stato eseguito, solo letto.
+- PR #12 (ramo claude/sweet-babbage-utar0a): questi documenti; in bozza, da completare con l'esito e unire alla fine.
 
 ## Stato del repository (al 31 ottobre 2026)
 - main = 2.1.0: 2.0.0 (PR #5) + Action purge (PR #6, #9) + correzioni Codex 2.0.1 (PR #7) + 2.1.0 (canale v2/v3, ritorno con

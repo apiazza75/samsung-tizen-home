@@ -32,25 +32,53 @@ servizio si allineano all'ultimo commit di `main`, che deve quindi conoscere la 
 ## Firma e installazione (in corso dal 13/11/2026, non ancora provate sulla TV)
 
 La TV installa solo pacchetti firmati e solo con la **Modalità sviluppatore** attiva (Apps → digitare 12345 → Developer mode On →
-IP del computer → riavvio della TV). Il file prodotto qui **non è firmato**.
+IP del computer → riavvio della TV). Il file prodotto da `tools/build-native.js` **non è firmato**.
 
-**Strada scelta: Tizen Studio** (strumenti ufficiali Samsung) sul Mac, con certificato Samsung legato al DUID della TV:
+**Strada scelta dall'utente (13/11): `reisxd/tizen.js`, senza Tizen Studio.** Il Mac è arm64 con macOS 27; Tizen Studio (fermo alla
+6.1, aprile 2025) è solo x86_64 e richiederebbe Rosetta 2, che l'utente non vuole installare. Tutto ciò che segue gira in Node.
 
-1. Tizen Studio con *Samsung TV Extensions* e *Samsung Certificate Extension* (dalla 2.0.73 in su: le versioni precedenti non
-   creano più certificati da settembre 2025). Su Mac con processore Apple non è supportato ufficialmente: gira con Rosetta.
-2. Modalità sviluppatore sulla TV con l'IP del Mac, riavvio, `sdb connect <IP della TV>`, `sdb devices`.
-3. Certificate Manager: profilo Samsung (account Samsung), certificato autore + distributore con il DUID della TV. Il certificato
-   autore va **conservato**: un aggiornamento firmato da un autore diverso viene rifiutato finché non si disinstalla l'app.
-4. `tizen package -t wgt -s <profilo> -- dist/MilanoHome-unsigned.wgt`, poi `tizen install -n <file firmato> -t <TV>`.
+Letto nei sorgenti (`tizen.js` @45b0010, `TizenBrewInstaller` @579e2d2), **non ancora eseguito**:
 
-Attenzione all'**IP del computer nella Modalità sviluppatore**: TizenBrew lo vuole a `127.0.0.1` (lo usa per rilanciarsi in debug),
-l'installazione dal Mac lo vuole all'IP del Mac. Prima di cambiarlo va annotato il valore attuale; a installazione fatta va rimesso
-com'era, con un altro riavvio.
+1. **Stato della TV, sola lettura**: `curl http://<TV>:8001/api/v2/` restituisce `device.developerMode` ("1" = attiva) e
+   `device.developerIP` (l'IP del computer impostato). Va letto e annotato prima di cambiare qualcosa.
+2. **Collegamento**: il protocollo sdb è sulla porta 26101 della TV, che accetta solo l'IP impostato come computer. In Node lo parla
+   la libreria `adbhost` (`createConnection({host, port: 26101})`), la stessa dell'installer.
+3. **DUID**: flusso `shell:0 getduid` sulla connessione sdb (sola lettura).
+4. **Certificato Samsung**: `tizenjs create-samsung-cert --name … --email … --password … --duidList <DUID> --privilege Public
+   --output <cartella>`. Chiede di accedere all'account Samsung a
+   `https://account.samsung.com/accounts/TDC/signInGate?clientId=v285zxnl3h&tokenType=TOKEN` e di incollare il JSON di risposta
+   (`access_token`, `userId`); scrive `author.p12`, `distributor.p12`, `device-profile.xml`. Scarica le CA Samsung da
+   `download.tizen.org` in `~/share/.samsung-cert`. I privilegi di `config.xml` sono tutti pubblici: basta `Public`.
+5. **Firma**: `tizenjs build dist/MilanoHome-unsigned.wgt -t wgt -o dist/MilanoHome.wgt --author author.p12 --authorPwd …
+   --distributor distributor.p12 --distributorPwd …` (toglie eventuali firme, aggiunge `author-signature.xml` e `signature1.xml`).
+6. **Profilo del dispositivo** (modifica alla TV): `device-profile.xml` va copiato in
+   `/home/owner/share/tmp/sdk_tools/device-profile.xml` (protocollo `sync:`, vedi `utils/FilePusher.js` dell'installer).
+7. **Installazione** (modifica alla TV): `.wgt` copiato in `/home/owner/share/tmp/sdk_tools/package.wgt`, poi flusso
+   `shell:0 vd_appinstall MilanoHome /home/owner/share/tmp/sdk_tools/package.wgt`; l'esito è nel testo restituito (l'installer
+   considera finita l'operazione alla comparsa di "spend time").
 
-Strada scartata per ora: firma con `reisxd/tizen.js` e installazione con TizenBrew Installer Desktop. Letto nel suo codice
-(`tizenbrew-installer-service/index.js`, `resignOrInstall`): sotto Tizen 7 l'installer **non firma**, copia il `.wgt` in
-`/home/owner/share/tmp/sdk_tools/` e lancia `vd_appinstall`; la firma serve quindi comunque, e non è accertato che la QN90A accetti
-un certificato distributore non Samsung.
+Punti da tenere d'occhio, in ordine di probabilità:
+
+- **TLS di `svdca.samsungqbe.com`** (servizio dei certificati): l'installer disattiva la verifica TLS per tutto il processo perché
+  quel certificato è scaduto. Se `create-samsung-cert` fallisce per questo, fermarsi e chiedere all'utente prima di aggirare la
+  verifica, e in ogni caso limitarla a quel solo comando.
+- **Formato della firma**: `tizen.js` scrive i riferimenti con `encodeURIComponent` (`service%2Fservice.js`) e usa SHA-512. È lo
+  stesso formato con cui l'installer rifirma TizenBrew (che ha a sua volta una cartella `service/`) su Tizen 7+; su Tizen 6 non è
+  provato. Se l'installazione fallisce per la firma, è il primo sospetto.
+- **Certificato Tizen "pubblico"** (`create-tizen-cert`, senza account Samsung): possibile ripiego, ma non è accertato che la QN90A
+  accetti un distributore non Samsung.
+- **IP del computer nella Modalità sviluppatore**: TizenBrew lo vuole a `127.0.0.1` (lo usa per rilanciarsi in debug),
+  l'installazione dal Mac lo vuole all'IP del Mac (192.168.1.30). Si cambia dal telecomando, con riavvio; a installazione fatta va
+  rimesso com'era, con un altro riavvio.
+- **Chiavi**: `author.p12`, `distributor.p12` e la loro password restano **fuori dal repository** (per esempio in
+  `~/.milanohome-cert/`). Il certificato autore va conservato: un aggiornamento firmato da un autore diverso viene rifiutato finché
+  non si disinstalla l'app.
+
+Strada ufficiale, non scelta: Tizen Studio con *Samsung Certificate Extension* ≥ 2.0.73 (su Mac arm64 solo con Rosetta 2), poi
+`tizen package -t wgt -s <profilo> -- dist/MilanoHome-unsigned.wgt` e `tizen install -n <file firmato> -t <TV>`.
+
+TizenBrew Installer Desktop da solo non basta: sotto Tizen 7 **non firma** (`resignOrInstall`), installa il `.wgt` così com'è, e
+dalla sua interfaccia su computer installa solo da release GitHub, non da file locale.
 
 ## Cosa è collaudato e cosa no
 
