@@ -105,5 +105,18 @@
  "empty": "Aucun élément",
  "hd_settop": "Décodeur",
  "hd_console": "Console",
- "hd_bluray": "Lecteur Blu-ray"
+ "hd_bluray": "Lecteur Blu-ray",
+ "off": "désactivé",
+ "m_timer": "Minuteur « encore un épisode » : {0}",
+ "timer_min": "retour à Quiet Home après {0} min",
+ "timer_done": "Minuteur terminé : de retour sur Quiet Home",
+ "m_auto": "Trier la rangée selon l'heure de la journée : {0}",
+ "m_tonight": "Bandeau « Ce soir » (anime diffusés aujourd'hui sur les applis de la rangée) : {0}",
+ "m_fav": "Anime que je suis : {0}",
+ "fav_title": "Anime que je suis",
+ "fav_desc": "OK = suivre / ne plus suivre · Retour = enregistrer et fermer · données : AniList",
+ "fav_loading": "Chargement depuis AniList…",
+ "fav_fail": "AniList n'a pas répondu : réessayez plus tard",
+ "tn_label": "Ce soir",
+ "tn_ep": "ép. {0}"
 }

@@ -22,6 +22,11 @@ Developed and measured on a 2021 Neo QLED (QN90A, Tizen 6.0, Chromium 76). Other
 - **HDMI inputs as tiles**, with names you choose (Console, Set-top box, …).
 - **Weather** for your city (Open-Meteo, no account), **clock** and a greeting.
 - **Backgrounds**: all photos in rotation, one fixed photo, or none. The photo drifts and zooms slowly.
+- **Optional extras, off by default** (menu ↑), so a TV that does not use them does no extra work:
+  - **Tonight strip**: anime airing today on the apps in your row (data from AniList, no account). Mark the ones you follow and
+    they come first. ↑ from the row reaches the strip, OK opens the app.
+  - **Row ordered by time of day**: the apps you open most in the morning, afternoon, evening or night come first.
+  - **"One more episode" timer**: after 30–120 minutes Quiet Home comes back to the front.
 - **Five languages**: English, Italian, Spanish, German, French. It follows the TV language; you can change it in the menu.
 - **Built for slow TV hardware**: the TV draws web pages in software, so the interface only moves things the TV can move cheaply
   (transforms and fades). No blur, no animated shadows.
@@ -50,8 +55,8 @@ For the native app (signing with your own Samsung certificate, installing over t
 ← → choose an app in the row · OK open · **↓ all apps** (← → ↑ ↓ move, OK opens, Back closes) · **↑ menu** · channel ▲▼ jumps by 5.
 
 Menu (↑): choose and order the apps in the row, HDMI input names, system apps, return to Quiet Home when you leave an app,
-restore the default order, retry the link with the TV, **Diagnostics**, background, weather city, language, clear the launcher
-cache.
+restore the default order, retry the link with the TV, **Diagnostics**, background, weather city, language, episode timer,
+order by time of day, Tonight strip, anime you follow, clear the launcher cache.
 
 The grid also has **TizenBrew**, **TV settings**, **Samsung Home** and **Turn off** (OK twice). These last three, and HDMI under
 TizenBrew, use Samsung's remote-control API: the first time, the TV asks you to allow "Quiet Home". On some TVs that API does not
@@ -116,6 +121,8 @@ suspended. To add an app to the table, open an issue with its name and its line 
   requests coming from the TV itself, so in the native app those three tiles do nothing.
 - **Returning** from an app that is not in `HUB_IDS` and stays suspended when you leave it: you land on the Samsung home.
 - **Temperatures** are in °C only.
+- **Tonight strip**: anime only for now, at most three titles, and AniList's streaming links are not per country: a title can
+  be listed for an app that does not carry it where you live. The list of anime to follow shows the 50 most popular airing now.
 - **Backgrounds** are four photos of Milan (where the project was born). More sets are planned.
 
 ## Tests
@@ -134,6 +141,10 @@ the top of `test/run.sh`.
 - The project was called *Milano Home* until 3.0.4. Internal names (`mh_*` storage keys, `MH_*` globals, `milanohome-*` cache
   files) keep the old prefix so existing installs keep working. Code comments are still mostly in Italian; translating them is a
   welcome contribution.
+
+## Data credits
+
+Weather by [Open-Meteo](https://open-meteo.com). Airing schedule by [AniList](https://anilist.co) (free for non-commercial use).
 
 ## Photo credits
 

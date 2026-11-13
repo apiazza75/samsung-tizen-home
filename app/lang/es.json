@@ -105,5 +105,18 @@
  "empty": "Sin elementos",
  "hd_settop": "Decodificador",
  "hd_console": "Consola",
- "hd_bluray": "Reproductor Blu-ray"
+ "hd_bluray": "Reproductor Blu-ray",
+ "off": "apagado",
+ "m_timer": "Temporizador «un episodio más»: {0}",
+ "timer_min": "vuelve a Quiet Home tras {0} min",
+ "timer_done": "Temporizador terminado: de vuelta en Quiet Home",
+ "m_auto": "Ordenar la fila según la hora del día: {0}",
+ "m_tonight": "Franja «Esta noche» (anime que se estrena hoy en las apps de la fila): {0}",
+ "m_fav": "Anime que sigo: {0}",
+ "fav_title": "Anime que sigo",
+ "fav_desc": "OK = seguir / dejar de seguir · Atrás = guardar y cerrar · datos: AniList",
+ "fav_loading": "Cargando desde AniList…",
+ "fav_fail": "AniList no respondió: inténtalo más tarde",
+ "tn_label": "Esta noche",
+ "tn_ep": "ep. {0}"
 }

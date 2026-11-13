@@ -45,7 +45,7 @@ async function main() {
   let p = await waitPing(8000);
   ok(!!p, 'servizio risponde a /ping', svc.log);
   if (p) {
-    ok(p.v === '3.1.0', 'versione 3.1.0', p.v);
+    ok(p.v === '3.2.0', 'versione 3.2.0', p.v);
     ok(p.ref === SHA1, 'core dal commit di main (' + SHA1.slice(0, 7) + ')', p.ref);
     ok(p.boot && p.boot.source === 'network', 'avviato dalla rete', p.boot);
     ok(p.lan === '127.0.0.2', 'IP di rete rilevato', p.lan);
@@ -92,7 +92,7 @@ async function main() {
 
   console.log('\n[S2] aggiornamento a caldo: main avanza a un commit con un core diverso');
   const over = tmpDir(); fs.mkdirSync(path.join(over, 'app'));
-  fs.writeFileSync(path.join(over, 'service-core.js'), fs.readFileSync(path.join(ROOT, 'service-core.js'), 'utf8').replace("var VERSION = '3.1.0';", "var VERSION = '2.0.0-next';"));
+  fs.writeFileSync(path.join(over, 'service-core.js'), fs.readFileSync(path.join(ROOT, 'service-core.js'), 'utf8').replace("var VERSION = '3.2.0';", "var VERSION = '2.0.0-next';"));
   await ctlNet('sha=' + SHA2 + '&override=' + SHA2 + ':' + over);
   r = await get(SVC + '/update', fromPage, 30000); ok(r.code === 200 && r.json.action === 'updated' && r.json.ref === SHA2, '/update: updated → ' + SHA2.slice(0, 7), r.json);
   await sleep(2500);
@@ -213,6 +213,12 @@ async function main() {
   console.log('\n[S12b] lancio senza callback di successo (come sulla QN90A): risposta comunque e ritorno attivo');
   r = await get(SVC + '/launch?id=muta.App&back=1', fromPage); p = (await get(SVC + '/ping')).json;
   ok(r.json && r.json.ok && p.watching === 'muta.App', 'risposta ok e osservatore partito', { r: r.json, watching: p.watching });
+  console.log('\n[S14] timer "ancora un episodio": allo scadere il launcher torna davanti; /ping?front=1 lo annulla');
+  r = await get(SVC + '/launch?id=11101200001.Netflix&back=0&timer=0.02', fromPage); await sleep(2200);
+  p = (await get(SVC + '/ping')).json; ok(p.lastReturn && p.lastReturn.timer === true && Date.now() - p.lastReturn.at < 2500, 'ritorno per timer registrato', p.lastReturn);
+  const n14 = JSON.parse(fs.readFileSync(path.join(data, 'launched.json'), 'utf8')).length;
+  r = await get(SVC + '/launch?id=11101200001.Netflix&back=0&timer=0.02', fromPage); await get(SVC + '/ping?front=1'); await sleep(2200);
+  ok(JSON.parse(fs.readFileSync(path.join(data, 'launched.json'), 'utf8')).length === n14 + 1, 'timer annullato: nessun ritorno', n14);
   await stopService(svc);
 
   console.log('\nRisultato: ' + pass + ' verifiche superate, ' + fail + ' fallite' + (fail ? '\n - ' + failures.join('\n - ') : ''));
