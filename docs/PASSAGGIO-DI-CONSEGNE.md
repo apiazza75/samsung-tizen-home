@@ -6,7 +6,7 @@ poi consegnare UNA volta (niente fix a tentativi, niente "prova questo e vediamo
 non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
 
 ## Aggiornamento del 13 novembre 2026: app nativa, firma e installazione in corso
-- main = 3.0.0 (PR #11, commit 3c8a253): collaudo completo rieseguito prima del merge (ES5, servizio, launcher, 42 verifiche
+- main = 3.0.1 (vedi sotto); la 3.0.0 è entrata con la PR #11 (commit 3c8a253): collaudo completo rieseguito prima del merge (ES5, servizio, launcher, 42 verifiche
   dell'app nativa), Action di purge riuscita. Il modulo TizenBrew sulla TV passa da solo alla 3.0.0 alla prossima apertura.
 - Pacchetto costruito da main: `node tools/build-native.js` → dist/MilanoHome-unsigned.wgt (1101 KB, ref 3c8a253), NON firmato.
 - Decisioni dell'utente (13/11, in ordine): prima Tizen Studio, poi, saputo che su Mac arm64 richiede Rosetta 2, **niente
@@ -42,6 +42,9 @@ non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
   DIFETTO trovato e corretto nella 3.0.1: sulla TV /apps impiega ~12 s (8 s di attesa del canale Smart Hub che non risponde + ~4 s
   per 439 app), il launcher andava in timeout a 12 s senza riprovare e restava con la sola tile YouTube. Ora: 30 s, un secondo
   tentativo, moduli mostrati subito, cartella dati in Diagnostica ("dati: ...").
+- 3.0.1 su main (PR #12, bb8c584) e VERIFICATA sulla TV via CDP: l'app nativa si è aggiornata da sola (launcher in cache al primo
+  riavvio, attivo al secondo; servizio v3.0.1 "da rete"), riga con 7 tile (YouTube, Netflix, Prime Video, Disney+, DAZN, Spotify,
+  RaiPlay), 441 app in cache; 3) cartella dati = /home/owner/share/milanohome-native (quella persistente).
 - Ancora aperti: 4) TizenTube dalla tile YouTube, verificabile solo con l'IP del computer a 127.0.0.1; canale telecomando
   dall'app nativa: 8002/v2 → 101 e poi nessuna risposta per 30 s (sorgenti HDMI senza funzione); tasto Home → home Samsung
   (previsto, vedi "Passi successivi" in APP-NATIVA.md). Sul Mac i test richiedono `ifconfig lo0 alias 127.0.0.2 up` (sudo).
