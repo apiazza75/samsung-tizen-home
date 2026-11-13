@@ -37,6 +37,14 @@ non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
   la TV lo elenca (MilanoHome.Launcher 3.0.0). Il formato di firma di tizen.js (URI con %2F, SHA-512) è quindi accettato da
   Tizen 6. device-profile.xml NON copiato sulla TV: non è servito (e il file prodotto da tizen.js è una copia del certificato).
   Restano: le cinque verifiche sulla TV; rimettere l'IP del computer a 127.0.0.1 e riavviare; verificare TizenBrew.
+- Verifiche sulla TV (13/11): 1) installazione ok; 2) servizio ok v3.0.0 app nativa, moduli di TizenBrew letti; 5) tasti canale
+  ok. Ispezione remota: `0 kill MilanoHome` poi `0 debug MilanoHome.Launcher` via sdb dà la porta CDP (~/.milanohome-tools/cdp.js).
+  DIFETTO trovato e corretto nella 3.0.1: sulla TV /apps impiega ~12 s (8 s di attesa del canale Smart Hub che non risponde + ~4 s
+  per 439 app), il launcher andava in timeout a 12 s senza riprovare e restava con la sola tile YouTube. Ora: 30 s, un secondo
+  tentativo, moduli mostrati subito, cartella dati in Diagnostica ("dati: ...").
+- Ancora aperti: 4) TizenTube dalla tile YouTube, verificabile solo con l'IP del computer a 127.0.0.1; canale telecomando
+  dall'app nativa: 8002/v2 → 101 e poi nessuna risposta per 30 s (sorgenti HDMI senza funzione); tasto Home → home Samsung
+  (previsto, vedi "Passi successivi" in APP-NATIVA.md). Sul Mac i test richiedono `ifconfig lo0 alias 127.0.0.2 up` (sudo).
 - Prima del 13/11 (sessione cloud): nessuna modifica alla TV. In questa sessione cloud l'esecuzione di `tizen.js` è stata bloccata (codice di terzi)
   e `download.tizen.org` / `developer.samsung.com` non erano raggiungibili: nulla di quel percorso è stato eseguito, solo letto.
 - PR #12 (ramo claude/sweet-babbage-utar0a): questi documenti; in bozza, da completare con l'esito e unire alla fine.

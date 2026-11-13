@@ -5,7 +5,7 @@
    ES5 per Node vecchi. Gli endpoint che agiscono sulla TV accettano solo richieste dalla pagina di TizenBrew. */
 (function () {
   'use strict';
-  var VERSION = '3.0.0';
+  var VERSION = '3.0.1';
   // commit in uso e bootstrap: li passa service.js come argomenti (nella sandbox di TizenBrew `global` non esiste)
   var REF = (function () { try { return (typeof MH_REF !== 'undefined' && MH_REF) || Function('return this')().MH_REF || null; } catch (e) { return null; } })();
   var BOOT = (function () { try { return (typeof MH_BOOT !== 'undefined' && MH_BOOT) || Function('return this')().MH_BOOT || null; } catch (e) { return null; } })();
@@ -411,7 +411,7 @@
     if (req.method === 'OPTIONS' && NATIVE && webOrigin(req.headers.origin)) { res.writeHead(403); return res.end(); }
     if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' }); return res.end(); }
     if (path === '/ping') { var dir = hubDirList();
-      return json(res, 200, { ok: true, tizen: hasTizen(), node: process.version, v: VERSION, ref: REF, native: !!NATIVE, self: SELF_APP, watching: watch ? watch.id : null, lan: lanIp(), lastReturn: lastReturn,
+      return json(res, 200, { ok: true, tizen: hasTizen(), node: process.version, v: VERSION, ref: REF, native: !!NATIVE, dir: DATA_DIR, self: SELF_APP, watching: watch ? watch.id : null, lan: lanIp(), lastReturn: lastReturn,
         boot: BOOT ? BOOT.info() : null,
         hub: { apps: hub.apps ? hub.apps.length : null, error: hub.error, dir: dir ? dir.length : null, dirError: hub.dirError, chan: loadState().chan || null, channelError: lastChanError, bad: Object.keys(badCombos), attempts: attempts.slice(-10) } }); }
     if (path === '/apps') return listApps(function (err, apps) {

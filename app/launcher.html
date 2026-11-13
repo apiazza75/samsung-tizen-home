@@ -143,7 +143,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 <script>
 (function(){
   var $=function(id){return document.getElementById(id)};
-  var VERSION='3.0.0';
+  var VERSION='3.0.1';
   var NATIVE=window.MH_NATIVE||null; // app nativa Tizen (pacchetto .wgt): nessun TizenBrew sotto, servizio proprio sulla porta 8096
   var isTV=!!NATIVE||(location.protocol!=='file:'&&location.hostname==='127.0.0.1'); // nativa, oppure caricato da TizenBrew
   var REPO='apiazza75/samsung-tizen-home';
@@ -242,7 +242,9 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
   function waitService(tries){return ping().then(function(ok){if(ok||tries<=0)return ok;return new Promise(function(r){setTimeout(function(){r(waitService(tries-1))},700)});});}
   function ensureService(){if(svcOk)return Promise.resolve(true);return ping().then(function(ok){if(ok||!NATIVE)return ok;try{NATIVE.startService();}catch(e){}return waitService(8);});}
   function loadApps(){return waitService(8).then(function(ok){if(!ok)return null;
-    return fetchJson(SVC+'/apps',12000).then(function(j){if(j.error){dbg.appsErr=j.error;return null}dbg.hub=j.hub;dbg.hubDir=j.hubDir;dbg.hubErr=j.hubError;return j.apps||[]}).catch(function(e){dbg.appsErr=String(e);return null});});}
+    /* sulla TV /apps può impiegare 8 s (attesa del canale Smart Hub) più qualche secondo per elencare ~440 app: tempo largo e un secondo tentativo */
+    function once(){return fetchJson(SVC+'/apps',30000).then(function(j){if(j.error){dbg.appsErr=j.error;return null}dbg.appsErr=null;dbg.hub=j.hub;dbg.hubDir=j.hubDir;dbg.hubErr=j.hubError;return j.apps||[]});}
+    return once().catch(function(){return new Promise(function(r){setTimeout(r,2000)}).then(once)}).catch(function(e){dbg.appsErr=String(e);return null});});}
   function sysIconUrl(a){if(a.hub)return SVC+'/hubicon?id='+encodeURIComponent(a.hub);if(a.iconOk===true&&a.iconPath)return SVC+'/icon?path='+encodeURIComponent(a.iconPath);return null;}
   function noService(){toast(NATIVE?'Servizio non attivo: chiudi e riapri Milano Home':'Servizio non attivo: riapri Milano Home da TizenBrew',4000);}
   function launchApp(id,name){ensureService().then(function(ok){if(!ok)return noService();
@@ -384,7 +386,9 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
   /* 1) rendering immediato dalla cache, 2) aggiornamento dai dati freschi; ogni fonte che fallisce conserva l'ultimo dato buono */
   var cached=null;try{cached=JSON.parse(localStorage.getItem('mh_cache')||'null');}catch(e){}
   if(cached&&cached.apps&&cached.apps.length){rebuild(cached.mods||[],cached.apps);}
-  Promise.all([loadModules(),loadApps()]).then(function(r){
+  var modsP=loadModules();
+  modsP.then(function(m){if(isTV&&m&&m.length&&!dbg.loaded&&!(cached&&cached.apps&&cached.apps.length))rebuild(m,lastApps);});
+  Promise.all([modsP,loadApps()]).then(function(r){
     var mods=r[0],apps=r[1];dbg.loaded=true;
     if(!isTV){if(!cached)buildDemo();return;}
     var modsOk=mods!==null,appsOk=apps!==null;
@@ -467,7 +471,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
   function drawDebug(){var d=$('debug');var s=dbg.svc||{},hub=s.hub||{},lc=readLauncherCache();
     var lines=['MILANO HOME '+VERSION+' · commit '+(window.MH_REF?String(window.MH_REF).slice(0,7):'locale')+' da '+(window.MH_SOURCE||'file')+(NATIVE?' · app nativa':'')+' · diagnostica  (↑ ↓ scorri · Indietro chiude)',
       'aggiornamento: '+upd.state+(upd.svc?' · servizio: '+upd.svc:'')+' · cache launcher: '+(lc?lc.ref.slice(0,7):'assente'),
-      'servizio: '+(svcOk?'ok v'+s.v+' commit '+(s.ref?String(s.ref).slice(0,7):'?')+' node '+s.node+(s.boot?' · avviato da '+s.boot.source+(s.boot.lastError?' · '+s.boot.lastError:''):' · bootstrap 1.x'):'assente')+'  ·  moduli: '+(dbg.modsOk?modules.map(function(m){return m.name}).join(', '):'non ricevuti')+'  ·  app: '+allApps.length+(dbg.appsErr?'  ·  errore: '+dbg.appsErr:'')+'  ·  in cache: '+(cached&&cached.apps?cached.apps.length:0),
+      'servizio: '+(svcOk?'ok v'+s.v+' commit '+(s.ref?String(s.ref).slice(0,7):'?')+' node '+s.node+(s.dir?' · dati: '+s.dir:'')+(s.boot?' · avviato da '+s.boot.source+(s.boot.lastError?' · '+s.boot.lastError:''):' · bootstrap 1.x'):'assente')+'  ·  moduli: '+(dbg.modsOk?modules.map(function(m){return m.name}).join(', '):'non ricevuti')+'  ·  app: '+allApps.length+(dbg.appsErr?'  ·  errore: '+dbg.appsErr:'')+'  ·  in cache: '+(cached&&cached.apps?cached.apps.length:0),
       'Smart Hub: '+(dbg.hub!==undefined&&dbg.hub!==null?dbg.hub+' app dal canale':'canale non disponibile')+(dbg.hubErr?' ('+dbg.hubErr+')':'')+' · cartella icone: '+(hub.dir!==undefined&&hub.dir!==null?hub.dir+' app':'non leggibile'+(hub.dirError?' ('+hub.dirError+')':''))+' · abbinate: '+allApps.filter(function(a){return a.hub}).length+' · IP TV: '+(s.lan||'?')+(hub.chan?' · canale ok su '+hub.chan.host+(hub.chan.tls?':8002':':8001')+' '+(hub.chan.api||'v2'):'')+(hub.bad&&hub.bad.length?' · scartati: '+hub.bad.join(', '):''),
       'tentativi canale: '+((hub.attempts||[]).map(function(a){return a.host+':'+a.port+'/'+(a.api||'v2')+(a.token?' token':'')+' → '+a.result+(a.events&&a.events.length?' ['+a.events.join(', ')+']':'');}).join('  |  ')||'nessuno'),
       'ritorno a Milano Home: '+(s.lastReturn?s.lastReturn.method+(s.lastReturn.error?' ('+s.lastReturn.error+')':' ok')+' · '+agoText(s.lastReturn.at):'mai')+(dbg.wallErr?' · sfondo non caricato: '+dbg.wallErr:'')];
