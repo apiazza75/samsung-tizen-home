@@ -114,8 +114,8 @@ From the TV itself the Samsung remote control channel does not respond (measured
 
 ## Package names since 3.1.0
 
-The package is `QuietHome` (apps `QuietHome.Launcher` and `QuietHome.Service`), built as `dist/QuietHome-unsigned.wgt`. A TV that
-still has the old `MilanoHome` package must have it removed first: the two services would both listen on port 8096. The
+The package is `QuietHomeT` (a Tizen package id must be exactly 10 letters or digits: `QuietHome`, 9, fails to install with "Parsing error") (apps `QuietHomeT.Launcher` and `QuietHomeT.Service`), built as `dist/QuietHome-unsigned.wgt`. A TV that
+still has the old `MilanoHome` package must have it removed first (`shell:0 vd_appuninstall MilanoHome`, tried on the QN90A on 13/11/2026): the two services would both listen on port 8096. The
 preferences (row order, HDMI names, weather city, language) live in the package's own storage and do not carry over.
 
 ## Next steps (not in this version)
