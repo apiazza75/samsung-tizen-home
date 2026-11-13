@@ -76,11 +76,11 @@ async function main() {
   for (let i = 0; i < 8; i++) await key(page, 'ArrowUp'); await sleep(500); s = await state(page); ok(!s.gridOpen, '↑ oltre la prima sezione chiude la griglia');
   await key(page, 'ArrowDown'); await sleep(500);
   await key(page, 'Escape'); await sleep(600); s = await state(page); ok(!s.gridOpen, 'Indietro chiude la griglia');
-  await key(page, 'ArrowUp'); await sleep(400); s = await state(page); ok(s.menu === 'Quiet Home 3.1.0', '↑ apre il menu', s.menu);
+  await key(page, 'ArrowUp'); await sleep(400); s = await state(page); ok(s.menu === 'Quiet Home 3.2.0', '↑ apre il menu', s.menu);
   await page.screenshot({ path: path.join(SHOTS, 'p1-menu.png') });
   for (let i = 0; i < 6; i++) await key(page, 'ArrowDown');
   await key(page, 'Enter'); await sleep(800); s = await state(page);
-  ok(s.debug && /commit 1111111 from network/.test(s.debug) && /service: ok v3\.1\.0 commit 1111111/.test(s.debug) && /Smart Hub: 6 apps from the channel/.test(s.debug) && /channel ok on 127\.0\.0\.2:8002/.test(s.debug), 'Diagnostica: commit, servizio, Smart Hub, canale', s.debug && s.debug.slice(0, 600));
+  ok(s.debug && /commit 1111111 from network/.test(s.debug) && /service: ok v3\.2\.0 commit 1111111/.test(s.debug) && /Smart Hub: 6 apps from the channel/.test(s.debug) && /channel ok on 127\.0\.0\.2:8002/.test(s.debug), 'Diagnostica: commit, servizio, Smart Hub, canale', s.debug && s.debug.slice(0, 600));
   await page.screenshot({ path: path.join(SHOTS, 'p1-diag.png') });
   await key(page, 'Escape'); await sleep(6000); // il controllo aggiornamenti parte dopo 4 s
   await key(page, 'ArrowUp'); for (let i = 0; i < 6; i++) await key(page, 'ArrowDown'); await key(page, 'Enter'); await sleep(800); s = await state(page);
@@ -88,6 +88,24 @@ async function main() {
   await key(page, 'Escape'); await sleep(300);
   ok(errs.length === 0, 'nessun errore di console o di pagina', errs);
   await page.close();
+
+  console.log('\n[P1b] funzioni a scelta: striscia "Stasera" (AniList simulato), ordine per abitudini, timer');
+  const media = (id, title, pop, site, adult) => ({ episode: id + 1, media: { id, isAdult: !!adult, popularity: pop, title: { romaji: title, english: null }, externalLinks: [{ site, type: 'STREAMING' }] } });
+  await ctx.route('https://graphql.anilist.co/**', route => route.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' },
+    body: JSON.stringify({ data: { Page: { airingSchedules: [media(1, 'Popular Show', 900, 'Netflix'), media(2, 'Followed Show', 10, 'Netflix'), media(3, 'Elsewhere', 999, 'Hulu'), media(4, 'Adult', 999, 'Netflix', true)] } } }) }));
+  const p0 = await openLauncher(ctx, errs); const prefs0 = await p0.evaluate(() => localStorage.getItem('mh_prefs'));
+  await p0.evaluate(() => { const p = JSON.parse(localStorage.getItem('mh_prefs')); p.tonight = true; p.fav = [2]; p.auto = true; p.timer = 45; p.use = { '11101200001.Netflix': [9, 9, 9, 9] }; localStorage.setItem('mh_prefs', JSON.stringify(p)); }); await p0.close();
+  const pt = await openLauncher(ctx, errs); const reqs = []; pt.on('request', q => { if (/\/launch\?/.test(q.url())) reqs.push(q.url()); });
+  await sleep(800); let chips = await pt.evaluate(() => Array.from(document.querySelectorAll('#tonight span')).map(e => e.textContent));
+  ok(chips.length === 2 && /^★ Followed Show · ep\. 3 · Netflix$/.test(chips[0]) && /^Popular Show/.test(chips[1]), 'striscia: seguiti prima, solo app della riga, niente adulti', chips);
+  s = await state(pt); ok(s.items[0].name === 'Netflix' && s.items[0].focus, 'ordine per abitudini: l\'app più usata in questa fascia è la prima', s.items.map(i => i.name));
+  await key(pt, 'ArrowUp'); await sleep(300); s = await state(pt);
+  ok(!s.menu && await pt.evaluate(() => document.querySelector('#tonight span').classList.contains('is-focus')) && !s.items.some(i => i.focus), '↑ porta il fuoco sulla striscia');
+  await pt.screenshot({ path: path.join(SHOTS, 'p1b-tonight.png') });
+  await key(pt, 'Enter'); await sleep(600); ok(reqs.length === 1 && /id=11101200001\.Netflix/.test(reqs[0]) && /timer=45/.test(reqs[0]), 'OK sulla striscia apre l\'app, con il timer scelto', reqs);
+  await key(pt, 'ArrowUp'); await sleep(400); s = await state(pt); ok(s.menu === 'Quiet Home 3.2.0', '↑ dalla striscia apre il menu', s.menu);
+  await key(pt, 'Escape'); await pt.evaluate(v => { localStorage.setItem('mh_prefs', v); localStorage.removeItem('mh_tonight'); }, prefs0);
+  await pt.close(); await ctx.unroute('https://graphql.anilist.co/**');
 
   console.log('\n[P2] seconda apertura con GitHub e jsDelivr irraggiungibili: il launcher parte dalla cache, gli sfondi dal servizio');
   await get(NET + '/__ctl?offline=2');
@@ -105,7 +123,7 @@ async function main() {
 
   console.log('\n[P3] main avanza: il launcher scarica il nuovo (per la prossima apertura) e aggiorna subito il servizio');
   const over = fs.mkdtempSync(path.join(os.tmpdir(), 'mh-over-')); fs.mkdirSync(path.join(over, 'app'));
-  fs.writeFileSync(path.join(over, 'app', 'launcher.html'), fs.readFileSync(path.join(ROOT, 'app', 'launcher.html'), 'utf8').replace("var VERSION='3.1.0';", "var VERSION='2.0.0-next';"));
+  fs.writeFileSync(path.join(over, 'app', 'launcher.html'), fs.readFileSync(path.join(ROOT, 'app', 'launcher.html'), 'utf8').replace("var VERSION='3.2.0';", "var VERSION='2.0.0-next';"));
   await get(NET + '/__ctl?offline=0&sha=' + SHA2 + '&override=' + encodeURIComponent(SHA2 + ':' + over));
   page = await openLauncher(ctx, errs); s = await state(page);
   ok(s.ref === SHA1 && s.source === 'cache', 'apertura ancora dalla cache vecchia');

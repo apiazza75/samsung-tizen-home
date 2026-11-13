@@ -5,7 +5,7 @@
    ES5 per Node vecchi. Gli endpoint che agiscono sulla TV accettano solo richieste dalla pagina di TizenBrew. */
 (function () {
   'use strict';
-  var VERSION = '3.1.0';
+  var VERSION = '3.2.0';
   // commit in uso e bootstrap: li passa service.js come argomenti (nella sandbox di TizenBrew `global` non esiste)
   var REF = (function () { try { return (typeof MH_REF !== 'undefined' && MH_REF) || Function('return this')().MH_REF || null; } catch (e) { return null; } })();
   var BOOT = (function () { try { return (typeof MH_BOOT !== 'undefined' && MH_BOOT) || Function('return this')().MH_BOOT || null; } catch (e) { return null; } })();
@@ -110,7 +110,7 @@
       inFront(w, function (f) {
         if (watch !== w) return;
         if (f) { w.seen = true; return; }
-        if (f === false && w.seen) { stop(); setTimeout(bringLauncherBack, 600); }
+        if (f === false && w.seen) { stop(); armTimer(0); setTimeout(bringLauncherBack, 600); }
         else if (!w.seen && Date.now() - w.started > 30000) stop();
       });
     }, 2000);
@@ -120,10 +120,18 @@
   /* Risposta a un lancio. Sulla QN90A, dal servizio, la callback di successo di tizen.application.launch non arriva anche se l'app
      si apre (misurato): senza questo la richiesta restava appesa e l'osservatore del ritorno non partiva mai. Quindi si osserva
      subito e si risponde alla callback oppure dopo 1,5 s; se l'app non si è aperta l'osservatore si ferma da solo dopo 30 s. */
-  function launchReply(res, id, back) {
+  // timer "ancora un episodio": dopo i minuti scelti nel menu il launcher torna davanti; si annulla se l'app viene lasciata prima
+  var sleepT = null;
+  function armTimer(min) {
+    clearTimeout(sleepT); sleepT = null; min = +min; if (!(min > 0)) return;
+    sleepT = setTimeout(function () { sleepT = null; if (watch) { clearInterval(watch.timer); watch = null; }
+      var before = lastReturn; bringLauncherBack(); if (lastReturn !== before) lastReturn.timer = true; }, Math.min(min, 600) * 60000);
+  }
+  function launchReply(res, id, back, timer) {
     var done = false, t = setTimeout(function () { fin(null, 'unconfirmed'); }, 1500);
     function fin(err, how) { if (done) return; done = true; clearTimeout(t); if (err) json(res, 500, { error: err }); else json(res, 200, { ok: true, method: how }); }
     if (back === '1') watchApp(id); else if (watch) { clearInterval(watch.timer); watch = null; }
+    armTimer(timer);
     return fin;
   }
 
@@ -439,6 +447,7 @@
     if (req.method === 'OPTIONS' && NATIVE && webOrigin(req.headers.origin)) { res.writeHead(403); return res.end(); }
     if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' }); return res.end(); }
     if (path === '/ping') { var dir = hubDirList();
+      if (q.front) armTimer(0);   // il launcher è tornato davanti per altra via: il timer non serve più
       return json(res, 200, { ok: true, tizen: hasTizen(), node: process.version, v: VERSION, ref: REF, native: !!NATIVE, dir: DATA_DIR, self: SELF_APP, watching: watch ? watch.id : null, lan: lanIp(), lastReturn: lastReturn,
         boot: BOOT ? BOOT.info() : null,
         hub: { apps: hub.apps ? hub.apps.length : null, error: hub.error, dir: dir ? dir.length : null, dirError: hub.dirError, chan: loadState().chan || null, channelError: lastChanError, bad: Object.keys(badCombos), attempts: attempts.slice(-10) } }); }
@@ -481,7 +490,7 @@
     if (path === '/launch') {
       if (!hasTizen()) return json(res, 500, { error: 'no tizen' });
       if (!q.id) return json(res, 400, { error: 'id?' });
-      var fin = launchReply(res, q.id, q.back);
+      var fin = launchReply(res, q.id, q.back, q.timer);
       try { tizen.application.launch(q.id, function () { fin(); }, function (e) { fin(e && e.message ? e.message : 'launch failed'); }); }
       catch (e) { fin(e.message); }
       return;
@@ -489,7 +498,7 @@
     if (path === '/key') { var k = (q.key || '').replace(/[^A-Z0-9_]/g, ''); if (!k) return json(res, 400, { error: 'key?' });
       return sendRemoteKey(k, function (err) { if (err) return json(res, 500, { error: String(err) }); json(res, 200, { ok: true }); }); }
     if (path === '/modules') return json(res, 200, { modules: brewModules() });
-    if (path === '/module') { var finB = launchReply(res, BREW_APP, q.back); return openBrew(q.name || '', function (err, how) { finB(err ? String(err) : null, how); }); }
+    if (path === '/module') { var finB = launchReply(res, BREW_APP, q.back, q.timer); return openBrew(q.name || '', function (err, how) { finB(err ? String(err) : null, how); }); }
     if (path === '/hubreset') { hub.apps = null; hub.at = 0; hub.error = null; hub.failAt = 0; attempts = []; badCombos = {}; var st = loadState(); delete st.chan; saveState(st); if (chan) chan.close();
       return hubList(function (err, list) { json(res, 200, { error: err ? String(err) : null, apps: list ? list.length : null, attempts: attempts }); }); }
     json(res, 404, { error: 'not found' });

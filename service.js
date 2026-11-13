@@ -90,6 +90,7 @@
   function startupCheck() {
     check(function (r) {
       if (!r.error && r.action !== 'error') return;   // GitHub raggiunto e core allineato: da qui in poi gli aggiornamenti li chiede il launcher (/update)
+      if (state.running && attempt >= BACKOFF.length) return;   // un core gira già: non si insiste all'infinito (GitHub concede 60 richieste l'ora), ci ripensa il launcher con /update
       var wait = BACKOFF[Math.min(attempt++, BACKOFF.length - 1)];
       log('ritento tra ' + (wait / 1000) + ' s (' + (r.error || '') + ')');
       setTimeout(startupCheck, wait);
