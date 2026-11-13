@@ -95,6 +95,18 @@ Da verificare sulla TV (QE75QN90AATXZT, Tizen 6.0, firmware 2310), una cosa alla
 4. TizenTube si apre dalla tile YouTube (app control verso TizenBrew);
 5. i tasti canale ▲▼ arrivano al launcher.
 
+## Sorgenti HDMI e ritorno a Milano Home (dalla 3.0.2)
+
+Dalla TV stessa il canale telecomando Samsung non risponde (misurato sulla QN90A), quindi l'app nativa usa le API della TV:
+
+- **HDMI**: `tizen.tvwindow.setSource` sulla sorgente scelta e poi lancio del visore di sistema `org.tizen.tv-viewer`. Serve il
+  privilegio `http://tizen.org/privilege/tv.window`.
+- **Ritorno**: dopo aver aperto un'app la pagina osserva `tizen.tvwindow.getSource('MAIN').signal`: è `null` finché un'app è in
+  primo piano e diventa `true`/`false` quando la TV torna al visore; a quel punto Milano Home si rilancia. Non scatta se nel
+  frattempo è stata scelta un'altra sorgente, né se la sorgente di prima è il sintonizzatore senza antenna.
+- `config.xml` dichiara anche un `app-control` con `reload="disable"`: il rilancio riporta la pagina in primo piano senza ricaricarla.
+- **Home Samsung, Impostazioni TV e Spegni** passano ancora dal canale telecomando e dall'app nativa non funzionano.
+
 ## Passi successivi (non in questa versione)
 
 - **Tasto Home e risveglio dallo standby su Milano Home**: documentato da altri su un AU8000 con lo stesso Tizen 6.0 / firmware 2310

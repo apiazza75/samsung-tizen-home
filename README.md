@@ -45,6 +45,10 @@ Resta una sola dipendenza dalla rete all'apertura, che non è nostra: il proxy d
 
 Le icone sono **nostre** (`app/icons.js`, SVG che replicano quelle originali, 45 app più HDMI, TizenBrew, Impostazioni, Home, Spegni), abbinate per nome o per id dell'app: aspetto uniforme e nessuna dipendenza dalla TV. Per le app non comprese si usano, in ordine, l'icona dello **Smart Hub** (la stessa della home Samsung: letta dalla cartella `/opt/share/webappservice/apps_icon/FirstScreen/<appId>/250x250.png` se leggibile, altrimenti chiesta alla TV sul canale telecomando con `ed.installedApp.get` / `ed.apps.icon`, con cache su disco in `/home/owner/share/milanohome-icons`), poi il file icona dell'app Tizen, e infine il nome dell'app su una tinta.
 
+## App nativa: sorgenti e ritorno
+
+Nell'app nativa (pacchetto 3.0.2 o successivo) le sorgenti HDMI si cambiano con `tizen.tvwindow` e il visore di sistema, e il ritorno a Milano Home quando si esce da un'app è deciso dalla pagina osservando la finestra TV. Dettagli e limiti in `docs/APP-NATIVA.md`.
+
 ## Canale telecomando
 
 Il servizio parla con la TV su `samsung.remote.control` provando in ordine l'IP di rete della TV e `127.0.0.1`, porta 8002 (TLS) e 8001, e le due versioni del canale, `/api/v2/` e `/api/v3/`: quale funzioni dipende dal firmware. Su alcuni il v2 chiude subito con codice 1005 "notack" (la richiesta di accoppiamento non viene nemmeno mostrata, oppure il token salvato non è più valido) e il v3 accetta i tasti senza accoppiamento; su altri è il contrario e il v3 risponde `ms.error` ai tasti. Il servizio ricorda la combinazione buona, dimentica un token rifiutato, scarta il canale che rifiuta i tasti e registra ogni tentativo (stretta di mano, eventi, codice e motivo di chiusura) nella Diagnostica. Se la TV rifiuta: *Impostazioni → Generale → Gestione dispositivi esterni → Gestione connessioni dispositivi*, "Notifica di accesso" attiva e "Milano Home" consentito; poi menu ↑ → "Riprova il collegamento con la TV".

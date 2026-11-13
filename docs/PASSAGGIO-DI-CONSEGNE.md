@@ -6,7 +6,7 @@ poi consegnare UNA volta (niente fix a tentativi, niente "prova questo e vediamo
 non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
 
 ## Aggiornamento del 13 novembre 2026: app nativa, firma e installazione in corso
-- main = 3.0.0 (PR #11, commit 3c8a253): collaudo completo rieseguito prima del merge (ES5, servizio, launcher, 42 verifiche
+- main = 3.0.1 (vedi sotto); la 3.0.0 è entrata con la PR #11 (commit 3c8a253): collaudo completo rieseguito prima del merge (ES5, servizio, launcher, 42 verifiche
   dell'app nativa), Action di purge riuscita. Il modulo TizenBrew sulla TV passa da solo alla 3.0.0 alla prossima apertura.
 - Pacchetto costruito da main: `node tools/build-native.js` → dist/MilanoHome-unsigned.wgt (1101 KB, ref 3c8a253), NON firmato.
 - Decisioni dell'utente (13/11, in ordine): prima Tizen Studio, poi, saputo che su Mac arm64 richiede Rosetta 2, **niente
@@ -42,9 +42,37 @@ non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
   DIFETTO trovato e corretto nella 3.0.1: sulla TV /apps impiega ~12 s (8 s di attesa del canale Smart Hub che non risponde + ~4 s
   per 439 app), il launcher andava in timeout a 12 s senza riprovare e restava con la sola tile YouTube. Ora: 30 s, un secondo
   tentativo, moduli mostrati subito, cartella dati in Diagnostica ("dati: ...").
+- 3.0.1 su main (PR #12, bb8c584) e VERIFICATA sulla TV via CDP: l'app nativa si è aggiornata da sola (launcher in cache al primo
+  riavvio, attivo al secondo; servizio v3.0.1 "da rete"), riga con 7 tile (YouTube, Netflix, Prime Video, Disney+, DAZN, Spotify,
+  RaiPlay), 441 app in cache; 3) cartella dati = /home/owner/share/milanohome-native (quella persistente).
 - Ancora aperti: 4) TizenTube dalla tile YouTube, verificabile solo con l'IP del computer a 127.0.0.1; canale telecomando
   dall'app nativa: 8002/v2 → 101 e poi nessuna risposta per 30 s (sorgenti HDMI senza funzione); tasto Home → home Samsung
   (previsto, vedi "Passi successivi" in APP-NATIVA.md). Sul Mac i test richiedono `ifconfig lo0 alias 127.0.0.2 up` (sudo).
+- 3.0.2 (13/11, dopo la prova dell'utente: "navigazione che lagga, HDMI che non vanno, uscendo da un'app si torna a Samsung").
+  Tutto MISURATO sulla TV via CDP, poi corretto, poi rimisurato con il launcher del ramo caricato con `index.html?ref=<sha>`:
+  * FLUIDITÀ. Traccia di prestazioni (Tracing del CDP): sulla TV il disegno è software, su 2 thread. A ogni spostamento la tinta
+    (gradiente CSS a tutto schermo) e i livelli "raggruppati" venivano ridisegnati per intero: ~18 ms a tile, 5,8 s di disegno per
+    6 tasti, fotogrammi da 0,8-1,3 s. Il thread principale era libero (gestore del tasto: 5-10 ms). Correzione: tinta disegnata
+    su un canvas 192x108 e mostrata come <img> (la ingrandisce il compositore: 3 tile invece di 120), `will-change` fisso sugli
+    elementi animati così i livelli non cambiano forma, anello della selezione su un livello suo, niente transizioni di ombra o
+    colore, nella griglia un riquadro di selezione che scorre sopra le card. Dopo: buco peggiore ~60 ms sulla riga, ~40 ms nella
+    griglia. NON usare `transform:scale` su un elemento piccolo per "ingrandire" un gradiente: il livello viene disegnato comunque
+    alla scala finale (provato).
+  * HDMI. Dalla TV stessa il canale telecomando non funziona: 8002/v2 → 101 e silenzio per 30 s anche dopo "Consenti";
+    127.0.0.1:8001/v3 si collega ma risponde "unrecognized method value : ms.remote.control". Nell'app nativa le sorgenti passano
+    da `tizen.tvwindow.setSource` (privilegio `tv.window`) seguito dal lancio di `org.tizen.tv-viewer`: provato sulla TV (HDMI 2
+    → sorgente HDMI 2, visore in primo piano). Al momento della prova nessun dispositivo HDMI era acceso: l'immagine vera la deve
+    confermare l'utente. Home Samsung, Impostazioni TV e Spegni usano ancora il canale e quindi NON funzionano dall'app nativa.
+  * RITORNO. L'API REST della TV (`/api/v2/applications/<id>`) dà running:false anche per l'app aperta (RaiPlay, la stessa Milano
+    Home) e 404 per gli id tipo org.tizen.netflix-app: l'osservatore del servizio non può scattare. `addAppStatusChangeListener`
+    non emette eventi; `getAppsUsageInfo` non è supportata sul profilo TV; `getAppsContext` elenca Netflix e YouTube anche da
+    chiuse. Segnale usato dalla pagina: `tizen.tvwindow.getSource('MAIN').signal` è null con un'app in primo piano e diventa
+    true/false quando la TV torna al visore. Provato: RaiPlay aperta dal launcher e chiusa da sdb → Milano Home torna in ~3 s.
+    Limite: se la sorgente di prima è il sintonizzatore senza antenna, signal resta null. L'uscita "vera" dal menu di un'app la
+    deve confermare l'utente. `reload="disable"` in config.xml: il rilancio non ricarica più la pagina (verificato).
+  * Pacchetto: config.xml cambia (privilegio, app-control) quindi va REINSTALLATO; il launcher 3.0.2 su un pacchetto 3.0.0/3.0.1
+    resta fluido ma per HDMI ripiega sul tasto e non ha il ritorno. Strumenti di misura usati (non nel repository): tracce e
+    abbinamento livello → elemento con i domini Tracing, LayerTree e DOM del CDP.
 - Prima del 13/11 (sessione cloud): nessuna modifica alla TV. In questa sessione cloud l'esecuzione di `tizen.js` è stata bloccata (codice di terzi)
   e `download.tizen.org` / `developer.samsung.com` non erano raggiungibili: nulla di quel percorso è stato eseguito, solo letto.
 - PR #12 (ramo claude/sweet-babbage-utar0a): questi documenti; in bozza, da completare con l'esito e unire alla fine.
