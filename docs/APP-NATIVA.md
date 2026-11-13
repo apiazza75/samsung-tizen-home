@@ -101,9 +101,12 @@ Dalla TV stessa il canale telecomando Samsung non risponde (misurato sulla QN90A
 
 - **HDMI**: `tizen.tvwindow.setSource` sulla sorgente scelta e poi lancio del visore di sistema `org.tizen.tv-viewer`. Serve il
   privilegio `http://tizen.org/privilege/tv.window`.
-- **Ritorno**: dopo aver aperto un'app la pagina osserva `tizen.tvwindow.getSource('MAIN').signal`: è `null` finché un'app è in
-  primo piano e diventa `true`/`false` quando la TV torna al visore; a quel punto Milano Home si rilancia. Non scatta se nel
-  frattempo è stata scelta un'altra sorgente, né se la sorgente di prima è il sintonizzatore senza antenna.
+- **Ritorno** (dalla 3.0.3, nel servizio): dopo aver aperto un'app il servizio chiede ogni 2 s a `/api/v2/applications/<id>` se è
+  ancora `visible`; quando non lo è più rilancia Milano Home. L'API dice il vero solo con l'id Smart Hub numerico (tabella `HUB_IDS`
+  in `service-core.js`: Netflix, Prime Video, YouTube, Disney+, DAZN, Spotify, RaiPlay); con l'id Tizen risponde sempre `false`.
+  Per le app fuori tabella il servizio guarda se l'app è ancora tra i contesti in esecuzione: funziona per quelle che si chiudono
+  all'uscita, non per quelle che restano sospese. La pagina non può farlo: la TV la sospende circa 20 s dopo che è finita dietro
+  un'altra app (la 3.0.2 ci provava osservando `tizen.tvwindow`, e sulla sorgente TV il segnale usato non cambia mai).
 - `config.xml` dichiara anche un `app-control` con `reload="disable"`: il rilancio riporta la pagina in primo piano senza ricaricarla.
 - **Home Samsung, Impostazioni TV e Spegni** passano ancora dal canale telecomando e dall'app nativa non funzionano.
 

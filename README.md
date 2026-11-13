@@ -47,7 +47,7 @@ Le icone sono **nostre** (`app/icons.js`, SVG che replicano quelle originali, 45
 
 ## App nativa: sorgenti e ritorno
 
-Nell'app nativa (pacchetto 3.0.2 o successivo) le sorgenti HDMI si cambiano con `tizen.tvwindow` e il visore di sistema, e il ritorno a Milano Home quando si esce da un'app è deciso dalla pagina osservando la finestra TV. Dettagli e limiti in `docs/APP-NATIVA.md`.
+Nell'app nativa (pacchetto 3.0.2 o successivo) le sorgenti HDMI si cambiano con `tizen.tvwindow` e il visore di sistema. Il ritorno a Milano Home quando si esce da un'app lo decide il servizio (dalla 3.0.3), chiedendo all'API della TV se l'app è ancora visibile. Dettagli e limiti in `docs/APP-NATIVA.md`.
 
 ## Canale telecomando
 

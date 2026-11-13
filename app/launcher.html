@@ -151,7 +151,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 <script>
 (function(){
   var $=function(id){return document.getElementById(id)};
-  var VERSION='3.0.2';
+  var VERSION='3.0.3';
   var NATIVE=window.MH_NATIVE||null; // app nativa Tizen (pacchetto .wgt): nessun TizenBrew sotto, servizio proprio sulla porta 8096
   var isTV=!!NATIVE||(location.protocol!=='file:'&&location.hostname==='127.0.0.1'); // nativa, oppure caricato da TizenBrew
   var REPO='apiazza75/samsung-tizen-home';
@@ -261,24 +261,9 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     return once().catch(function(){return new Promise(function(r){setTimeout(r,2000)}).then(once)}).catch(function(e){dbg.appsErr=String(e);return null});});}
   function sysIconUrl(a){if(a.hub)return SVC+'/hubicon?id='+encodeURIComponent(a.hub);if(a.iconOk===true&&a.iconPath)return SVC+'/icon?path='+encodeURIComponent(a.iconPath);return null;}
   function noService(){toast(NATIVE?'Servizio non attivo: chiudi e riapri Milano Home':'Servizio non attivo: riapri Milano Home da TizenBrew',4000);}
-  /* Ritorno a Milano Home nell'app nativa. Sulla QN90A l'API REST della TV risponde "running: false" anche per l'app aperta, quindi il
-     servizio non si accorge dell'uscita. Segnale usato qui: con un'app in primo piano la finestra TV è ferma (signal null); quando si
-     esce la TV torna al visore sulla sorgente di prima e signal diventa true/false. Serve il privilegio tv.window (pacchetto >= 3.0.2).
-     shortcut: se la sorgente di prima è il sintonizzatore senza antenna, signal resta null e non si torna; nel caso, guardare anche tizen.application.getAppsContext. */
-  var backT=null,TV_VIEWER='org.tizen.tv-viewer';
+  /* Il ritorno a Milano Home lo decide il servizio (watchApp): questa pagina viene sospesa dalla TV quando è dietro un'altra app. */
+  var TV_VIEWER='org.tizen.tv-viewer';
   function tvWin(){try{return (NATIVE&&window.tizen&&tizen.tvwindow)||null;}catch(e){return null;}}
-  function stopBack(){clearInterval(backT);backT=null;}
-  function watchBack(){stopBack();var tw=tvWin(),s0,t0=Date.now(),hid=false;if(!tw||prefs.back===false)return;
-    try{s0=tw.getSource('MAIN');}catch(e){return;}
-    if(!s0||typeof s0.signal==='boolean')return;
-    backT=setInterval(function(){var s,age=Date.now()-t0;
-      if(document.hidden)hid=true;
-      if((hid&&!document.hidden)||(!hid&&age>30000)||age>6*3600000)return stopBack();
-      if(!hid)return;
-      try{s=tw.getSource('MAIN');}catch(e){return;}
-      if(s&&typeof s.signal==='boolean'&&s.type===s0.type&&s.number===s0.number){stopBack();try{localStorage.setItem('mh_back',String(Date.now()));}catch(e){}
-        try{tizen.application.launch(tizen.application.getCurrentApplication().appInfo.id);}catch(e){}}
-    },1500);}
   /* Sorgenti HDMI nell'app nativa: la sorgente si sceglie con l'API della finestra TV e poi si passa al visore di sistema. Il canale
      telecomando, dalla TV stessa, sulla QN90A non risponde. Senza il privilegio (pacchetto 3.0.0/3.0.1) o sotto TizenBrew resta il tasto. */
   function goSource(it){var tw=tvWin();function viaKey(){sendKey('KEY_HDMI'+it.n);}
@@ -286,11 +271,11 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     try{tizen.systeminfo.getPropertyValue('VIDEOSOURCE',function(v){var on=v.connected||[],s=null;on.concat(v.disconnected||[]).forEach(function(x){if(x.type==='HDMI'&&x.number===it.n)s=x;});
       if(!s)return toast('HDMI '+it.n+' non presente su questa TV',4000);
       if(on.indexOf(s)<0)toast('Nessun segnale su HDMI '+it.n+': controlla che il dispositivo sia acceso',5000);
-      try{tw.setSource(s,function(){stopBack();tizen.application.launch(TV_VIEWER,null,function(e){toast('Sorgente impostata, ma il visore TV non si apre'+(e&&e.message?': '+e.message:''),5000);});},
+      try{tw.setSource(s,function(){tizen.application.launch(TV_VIEWER,null,function(e){toast('Sorgente impostata, ma il visore TV non si apre'+(e&&e.message?': '+e.message:''),5000);});},
         function(e){toast('HDMI '+it.n+': '+((e&&e.message)||'cambio di sorgente rifiutato'),5000);});}catch(e){viaKey();}
     },viaKey);}catch(e){viaKey();}}
   function launchApp(id,name){ensureService().then(function(ok){if(!ok)return noService();
-    fetchJson(SVC+'/launch?id='+encodeURIComponent(id)+'&back='+(prefs.back===false?0:1),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+name+': '+j.error,3000);else watchBack();}).catch(function(){toast('Servizio non raggiungibile',3000)});});}
+    fetchJson(SVC+'/launch?id='+encodeURIComponent(id)+'&back='+(prefs.back===false?0:1),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+name+': '+j.error,3000);}).catch(function(){svcOk=false;toast('Servizio non raggiungibile: riprova',3000)});});}
   function sendKey(key,okMsg){ensureService().then(function(ok){if(!ok)return noService();
     fetchJson(SVC+'/key?key='+key,40000).then(function(j){if(j.error)toast(shortErr(j.error),5000);else if(okMsg)toast(okMsg);}).catch(function(){toast('Nessuna risposta dalla TV',4000)});});}
   function shortErr(e){e=String(e||'');if(e.length<120)return e;var m=/codice (\d+)( [^)]+)?/.exec(e);
@@ -312,7 +297,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     return new Promise(function(res){if(!isTV)return res(null);
     modulesRes=res;withWs(function(ok){if(!ok){if(modulesRes){modulesRes=null;res(null);}return;}ws.send(JSON.stringify({type:4,payload:false}));
       setTimeout(function(){if(modulesRes){modulesRes=null;res(null);}},4000);});});}
-  function launchModule(m){if(NATIVE){ensureService().then(function(ok){if(!ok)return noService();fetchJson(SVC+'/module?name='+encodeURIComponent(m.fullName),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+(m.appName||m.name)+': '+j.error,4000);else watchBack();}).catch(function(){toast('Servizio non raggiungibile',3000)});});return;}
+  function launchModule(m){if(NATIVE){ensureService().then(function(ok){if(!ok)return noService();fetchJson(SVC+'/module?name='+encodeURIComponent(m.fullName)+'&back='+(prefs.back===false?0:1),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+(m.appName||m.name)+': '+j.error,4000);}).catch(function(){svcOk=false;toast('Servizio non raggiungibile: riprova',3000)});});return;}
     withWs(function(ok){if(!ok){toast('TizenBrew non risponde: riapri Milano Home',4000);return;}
     ws.send(JSON.stringify({type:5,payload:m}));
     if(m.evaluateScriptOnDocumentStart){pendingNav=m;setTimeout(function(){if(pendingNav===m){pendingNav=null;location.href=m.appPath;}},5000);}
@@ -517,7 +502,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
       'servizio: '+(svcOk?'ok v'+s.v+' commit '+(s.ref?String(s.ref).slice(0,7):'?')+' node '+s.node+(s.dir?' · dati: '+s.dir:'')+(s.boot?' · avviato da '+s.boot.source+(s.boot.lastError?' · '+s.boot.lastError:''):' · bootstrap 1.x'):'assente')+'  ·  moduli: '+(dbg.modsOk?modules.map(function(m){return m.name}).join(', '):'non ricevuti')+'  ·  app: '+allApps.length+(dbg.appsErr?'  ·  errore: '+dbg.appsErr:'')+'  ·  in cache: '+(cached&&cached.apps?cached.apps.length:0),
       'Smart Hub: '+(dbg.hub!==undefined&&dbg.hub!==null?dbg.hub+' app dal canale':'canale non disponibile')+(dbg.hubErr?' ('+dbg.hubErr+')':'')+' · cartella icone: '+(hub.dir!==undefined&&hub.dir!==null?hub.dir+' app':'non leggibile'+(hub.dirError?' ('+hub.dirError+')':''))+' · abbinate: '+allApps.filter(function(a){return a.hub}).length+' · IP TV: '+(s.lan||'?')+(hub.chan?' · canale ok su '+hub.chan.host+(hub.chan.tls?':8002':':8001')+' '+(hub.chan.api||'v2'):'')+(hub.bad&&hub.bad.length?' · scartati: '+hub.bad.join(', '):''),
       'tentativi canale: '+((hub.attempts||[]).map(function(a){return a.host+':'+a.port+'/'+(a.api||'v2')+(a.token?' token':'')+' → '+a.result+(a.events&&a.events.length?' ['+a.events.join(', ')+']':'');}).join('  |  ')||'nessuno'),
-      'ritorno a Milano Home: '+(s.lastReturn?s.lastReturn.method+(s.lastReturn.error?' ('+s.lastReturn.error+')':' ok')+' · '+agoText(s.lastReturn.at):(+localStorage.getItem('mh_back')?'dalla pagina · '+agoText(+localStorage.getItem('mh_back')):'mai'))+(NATIVE?' · finestra TV: '+(function(){try{var w=tizen.tvwindow.getSource('MAIN');return w.type+' '+w.number;}catch(e){return 'non leggibile ('+e.name+')';}})():'')+(dbg.wallErr?' · sfondo non caricato: '+dbg.wallErr:'')];
+      'ritorno a Milano Home: '+(s.lastReturn?s.lastReturn.method+(s.lastReturn.error?' ('+s.lastReturn.error+')':' ok')+' · '+agoText(s.lastReturn.at):'mai')+(NATIVE?' · finestra TV: '+(function(){try{var w=tizen.tvwindow.getSource('MAIN');return w.type+' '+w.number;}catch(e){return 'non leggibile ('+e.name+')';}})():'')+(dbg.wallErr?' · sfondo non caricato: '+dbg.wallErr:'')];
     allApps.forEach(function(a){lines.push((a.show===false?'[nascosta] ':'')+(a.hub?'[hub '+a.hub+'] ':'')+(a.iconOk===true?'[icona] ':a.iconOk===false?'[icona assente] ':'')+(iconKeyFor(a.name,a.id)?'[nostra] ':'')+a.name+'  ·  '+a.id);});
     d.textContent=lines.join('\n');d.scrollTop=0;}
 
