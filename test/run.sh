@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Collaudo completo di Milano Home, da eseguire prima di ogni merge su main:
+# Collaudo completo di Quiet Home, da eseguire prima di ogni merge su main:
 #   1) sintassi ES5 di tutti i file (servizio: Node vecchi della TV; pagina: Chromium 76 di Tizen 6), con acorn;
 #   2) servizio nella replica della sandbox di TizenBrew contro TV finta e rete finta (test/service-tests.js);
 #   3) launcher in Chromium via Playwright: bootstrap, cache, aggiornamento, telecomando, icone (test/launcher-tests.js);
@@ -17,6 +17,14 @@ const scripts = h => { const o = []; const re = /<script(?![^>]*src=)[^>]*>([\s\
 const files = { "service.js": [fs.readFileSync("service.js", "utf8")], "service-core.js": [fs.readFileSync("service-core.js", "utf8")], "app/icons.js": [fs.readFileSync("app/icons.js", "utf8")], "native/native.js": [fs.readFileSync("native/native.js", "utf8")], "native/service.js": [fs.readFileSync("native/service.js", "utf8")],
   "app/index.html": scripts(fs.readFileSync("app/index.html", "utf8")), "app/launcher.html": scripts(fs.readFileSync("app/launcher.html", "utf8")) };
 let bad = 0; for (const [n, list] of Object.entries(files)) list.forEach((s, i) => { try { acorn.parse(s, { ecmaVersion: 5 }); console.log("  ok  " + n + (list.length > 1 ? " #" + i : "")); } catch (e) { bad++; console.log("  NO  " + n + ": " + e.message); } });
+if (bad) process.exit(1);'
+echo "== 1b) lingue: stesse chiavi e stessi segnaposto dell'inglese (EN in app/launcher.html)"
+node -e '
+const fs = require("fs"), m = /var EN=(\{.*?\});\n/.exec(fs.readFileSync("app/launcher.html", "utf8")), EN = JSON.parse(m[1].replace(/<\\\//g, "</"));
+const ph = s => (s.match(/\{\d\}/g) || []).sort().join(""); let bad = 0;
+fs.readdirSync("app/lang").filter(f => /\.json$/.test(f)).forEach(f => { const L = JSON.parse(fs.readFileSync("app/lang/" + f, "utf8"));
+  const miss = Object.keys(EN).filter(k => typeof L[k] !== "string" || ph(L[k]) !== ph(EN[k])), extra = Object.keys(L).filter(k => !(k in EN));
+  if (miss.length || extra.length) { bad++; console.log("  ko  " + f + " mancanti o con segnaposto diversi: " + miss.join(", ") + " · in più: " + extra.join(", ")); } else console.log("  ok  " + f + " (" + Object.keys(L).length + " testi)"); });
 if (bad) process.exit(1);'
 echo "== 2) servizio (sandbox TizenBrew + TV finta + rete finta)"
 node test/service-tests.js

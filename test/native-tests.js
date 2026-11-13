@@ -1,4 +1,4 @@
-/* Collaudo di Milano Home come app nativa Tizen (pacchetto assemblato da tools/build-native.js), senza TizenBrew sotto.
+/* Collaudo di Quiet Home come app nativa Tizen (pacchetto assemblato da tools/build-native.js), senza TizenBrew sotto.
    Servizio: native/service.js avviato come fa la TV (onStart) con un `tizen` finto, contro TV finta e rete finta.
    Launcher: index.html del pacchetto aperto da file:// in Chromium con un `tizen` finto nella pagina.
    Uso: node test/native-tests.js [cartella-screenshot]  (esce con 1 se qualcosa fallisce) */
@@ -31,7 +31,7 @@ async function main() {
   const files = ['config.xml', 'icon.png', 'index.html', 'native.js', 'bundled.js', 'wall1.jpg', 'service/service.js', 'service/boot.js', 'service/service-core.js', 'service/bundled.json'];
   ok(files.every(f => fs.existsSync(path.join(pkg, f))), 'pacchetto assemblato con tutti i file', files.filter(f => !fs.existsSync(path.join(pkg, f))));
   const cfg = fs.readFileSync(path.join(pkg, 'config.xml'), 'utf8');
-  ok(/version="3\.0\.4"/.test(cfg) && cfg.indexOf('id="MilanoHome.Launcher"') > 0 && cfg.indexOf('<tizen:service id="MilanoHome.Service">') > 0 && cfg.indexOf('@VERSION@') < 0, 'config.xml: versione, app e servizio');
+  ok(/version="3\.1\.0"/.test(cfg) && cfg.indexOf('id="QuietHome.Launcher"') > 0 && cfg.indexOf('<tizen:service id="QuietHome.Service">') > 0 && cfg.indexOf('@VERSION@') < 0, 'config.xml: versione, app e servizio');
   ok(cfg.indexOf('privilege/tv.window') > 0 && cfg.indexOf('reload="disable"') > 0, 'config.xml: privilegio finestra TV (sorgenti, ritorno) e rilancio senza ricarica');
 
   spawn('tv', [path.join(__dirname, 'fake-tv.js'), 'ok']); spawn('net', [path.join(__dirname, 'fake-net.js')]);
@@ -40,7 +40,7 @@ async function main() {
   fs.writeFileSync(brewCfg, JSON.stringify({ modules: ['npm/@foxreis/tizentube', 'gh/apiazza75/samsung-tizen-home'], autoLaunchServiceList: [], autoLaunchModule: '' }));
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'mh-native-'));
   const env = { MH_CDN: NET + '/gh/apiazza75/samsung-tizen-home@', MH_API: NET + '/api/commits/main', MH_DATA_DIR: data, MH_TV_HOST: '127.0.0.1', MH_TV_PORT: '18001', MH_TV_PORT_TLS: '18002', MH_LAN_IP: '127.0.0.2',
-    MH_HUB_DIR: path.join(data, 'no-such-dir'), MH_FAKE_PKG: 'MilanoHome', MH_BREW_CONFIG: brewCfg };
+    MH_HUB_DIR: path.join(data, 'no-such-dir'), MH_FAKE_PKG: 'QuietHome', MH_BREW_CONFIG: brewCfg };
   const startSvc = () => spawn('svc', [path.join(__dirname, 'sandbox.js'), path.join(pkg, 'service', 'service.js'), '--native'], env);
 
   console.log('\n[N1] primo avvio senza rete: il servizio parte dal core incluso nel pacchetto');
@@ -49,9 +49,9 @@ async function main() {
   let p = await waitPing(8000);
   ok(!!p, 'servizio nativo risponde sulla porta 8096', svc.log);
   if (p) {
-    ok(p.native === true && p.v === '3.0.4', 'modalità nativa, versione 3.0.4', { native: p.native, v: p.v });
+    ok(p.native === true && p.v === '3.1.0', 'modalità nativa, versione 3.1.0', { native: p.native, v: p.v });
     ok(p.ref === SHA1 && p.boot && p.boot.source === 'cache', 'core del pacchetto, senza rete', { ref: p.ref, boot: p.boot });
-    ok(p.self === 'MilanoHome.Launcher', 'il launcher da riaprire è l\'app nativa', p.self);
+    ok(p.self === 'QuietHome.Launcher', 'il launcher da riaprire è l\'app nativa', p.self);
   }
   ok((await get(OLD + '/ping')).code !== 200, 'la porta 8095 del modulo TizenBrew resta libera');
   let apps = await get(SVC + '/apps', PAGE);
@@ -88,7 +88,7 @@ async function main() {
   const before = launched(data).length;
   await get(SVC + '/launch?id=11101200001.Netflix&back=1', PAGE); await get(TV + '/__ctl?running=11101200001.Netflix:1'); await sleep(2600); await get(TV + '/__ctl?running=11101200001.Netflix:0'); await sleep(3400);
   const after = launched(data).slice(before + 1);
-  ok(after.length === 1 && after[0].method === 'launch' && after[0].id === 'MilanoHome.Launcher', 'riaperto MilanoHome.Launcher con un launch', after);
+  ok(after.length === 1 && after[0].method === 'launch' && after[0].id === 'QuietHome.Launcher', 'riaperto QuietHome.Launcher con un launch', after);
   p = (await get(SVC + '/ping')).json;
   ok(p && p.lastReturn && p.lastReturn.method === 'launch' && !p.lastReturn.error, 'ritorno registrato in diagnostica', p && p.lastReturn);
   // come sulla TV vera: Netflix si interroga con l'id Smart Hub e dopo l'uscita resta "running" ma non più "visible"
@@ -97,37 +97,37 @@ async function main() {
   ok(launched(data).length === b2 + 1, 'Netflix in primo piano: nessun ritorno', launched(data).slice(b2));
   await get(TV + '/__ctl?running=3201907018807:s'); await sleep(3400);
   const after2 = launched(data).slice(b2 + 1);
-  ok(after2.length === 1 && after2[0].id === 'MilanoHome.Launcher', 'Netflix sospesa dopo l\'uscita (running, non visible): Milano Home torna', after2);
+  ok(after2.length === 1 && after2[0].id === 'QuietHome.Launcher', 'Netflix sospesa dopo l\'uscita (running, non visible): Quiet Home torna', after2);
 
   console.log('\n[N5] main avanza: il servizio nativo si aggiorna da solo e resta nativo');
   const over = fs.mkdtempSync(path.join(os.tmpdir(), 'mh-native-over-')); fs.mkdirSync(path.join(over, 'app'));
-  fs.writeFileSync(path.join(over, 'service-core.js'), fs.readFileSync(path.join(ROOT, 'service-core.js'), 'utf8').replace("var VERSION = '3.0.4';", "var VERSION = '3.0.4-next';"));
-  fs.writeFileSync(path.join(over, 'app', 'launcher.html'), fs.readFileSync(path.join(ROOT, 'app', 'launcher.html'), 'utf8').replace("var VERSION='3.0.4';", "var VERSION='3.0.4-next';"));
+  fs.writeFileSync(path.join(over, 'service-core.js'), fs.readFileSync(path.join(ROOT, 'service-core.js'), 'utf8').replace("var VERSION = '3.1.0';", "var VERSION = '3.1.0-next';"));
+  fs.writeFileSync(path.join(over, 'app', 'launcher.html'), fs.readFileSync(path.join(ROOT, 'app', 'launcher.html'), 'utf8').replace("var VERSION='3.1.0';", "var VERSION='3.1.0-next';"));
   await get(NET + '/__ctl?offline=0&sha=' + SHA2 + '&override=' + SHA2 + ':' + over);
   r = await get(SVC + '/update', PAGE);
   ok(r.json && r.json.action === 'updated' && r.json.ref === SHA2, '/update scarica ed esegue il core nuovo', r.json);
   await sleep(1500); p = await waitPing(8000);
-  ok(p && p.v === '3.0.4-next' && p.ref === SHA2 && p.native === true, 'core nuovo sulla porta 8096, ancora nativo', p && { v: p.v, ref: p.ref, native: p.native });
+  ok(p && p.v === '3.1.0-next' && p.ref === SHA2 && p.native === true, 'core nuovo sulla porta 8096, ancora nativo', p && { v: p.v, ref: p.ref, native: p.native });
 
   console.log('\n[N6] riavvio del servizio: resta il core aggiornato (il pacchetto non lo sovrascrive)');
   await get(SVC + '/shutdown'); svc.kill('SIGTERM'); await waitDown(5000);
   await get(NET + '/__ctl?offline=1');
   svc = startSvc(); p = await waitPing(8000);
-  ok(p && p.ref === SHA2 && p.v === '3.0.4-next' && p.boot.source === 'cache', 'core aggiornato dalla cache, senza rete', p && { ref: p.ref, v: p.v, boot: p.boot });
+  ok(p && p.ref === SHA2 && p.v === '3.1.0-next' && p.boot.source === 'cache', 'core aggiornato dalla cache, senza rete', p && { ref: p.ref, v: p.v, boot: p.boot });
   await get(NET + '/__ctl?offline=0&sha=' + SHA1);
   await get(SVC + '/shutdown'); svc.kill('SIGTERM'); await waitDown(5000);
 
   console.log('\n[N7] pacchetto nuovo (stesso servizio, cache di un altro pacchetto): il core incluso sostituisce quello in cache');
   fs.writeFileSync(path.join(data, 'milanohome-seed.txt'), 'pacchetto-precedente');
   await get(NET + '/__ctl?offline=1'); svc = startSvc(); p = await waitPing(8000);
-  ok(p && p.ref === SHA1 && p.v === '3.0.4', 'riparte dal core del pacchetto installato', p && { ref: p.ref, v: p.v });
+  ok(p && p.ref === SHA1 && p.v === '3.1.0', 'riparte dal core del pacchetto installato', p && { ref: p.ref, v: p.v });
   await get(NET + '/__ctl?offline=0&sha=' + SHA1);
 
   /* ---------- launcher del pacchetto in Chromium, da file:// ---------- */
   const browser = await chromium.launch();
   const INIT = "window.MH_CDN='" + NET + "/gh/apiazza75/samsung-tizen-home@';window.MH_API='" + NET + "/api/commits/main';window.__tz={keys:[],svc:[],launched:[],src:{type:'HDMI',number:1,signal:null}};" +
     "Object.defineProperty(document,'hidden',{get:function(){return !!window.__hid;}});" +
-    "window.tizen={ApplicationControl:function(op){this.operation=op;},application:{getCurrentApplication:function(){return{appInfo:{packageId:'MilanoHome',id:'MilanoHome.Launcher'}}}," +
+    "window.tizen={ApplicationControl:function(op){this.operation=op;},application:{getCurrentApplication:function(){return{appInfo:{packageId:'QuietHome',id:'QuietHome.Launcher'}}}," +
     "launch:function(id,ok){window.__tz.launched.push(id);ok&&ok();}," +
     "launchAppControl:function(c,id,ok){window.__tz.svc.push({op:c.operation,id:id});ok&&ok();}}," +
     "tvwindow:{getSource:function(){return window.__tz.src;},setSource:function(s,ok){window.__tz.src={type:s.type,number:s.number,signal:null};ok&&ok(s,'MAIN');}}," +
@@ -141,19 +141,21 @@ async function main() {
     debug: document.getElementById('debug').classList.contains('show') ? document.getElementById('debug').textContent : null,
     wall: (document.querySelector('.wall.on') || {}).style ? document.querySelector('.wall.on').style.backgroundImage : '', toast: document.getElementById('toast').textContent }));
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'mh-native-prof-'));
-  const ctx = await chromium.launchPersistentContext(profile, { viewport: { width: 1920, height: 1080 } });
+  const ctx = await chromium.launchPersistentContext(profile, { viewport: { width: 1920, height: 1080 }, locale: 'it-IT' });
   await ctx.addInitScript(INIT);
   const errs = [];
   const open = async () => { const page = await ctx.newPage(); watch(page, errs); await page.goto('file://' + path.join(pkg, 'index.html')); await page.waitForSelector('#row .item', { timeout: 20000 }); await sleep(1500); return page; };
 
   console.log('\n[N8] launcher del pacchetto: parte dal file incluso, parla con il servizio nativo');
   let page = await open(); let s = await state(page);
-  ok(s.native && s.source === 'pacchetto' && s.ref === SHA1, 'launcher dal pacchetto (' + s.source + ', ' + String(s.ref).slice(0, 7) + ')', { native: s.native, source: s.source });
-  ok(s.tz.svc.length >= 1 && s.tz.svc[0].id === 'MilanoHome.Service' && /operation\/service$/.test(s.tz.svc[0].op), 'servizio del pacchetto avviato dalla pagina', s.tz.svc);
+  ok(s.native && s.source === 'package' && s.ref === SHA1, 'launcher dal pacchetto (' + s.source + ', ' + String(s.ref).slice(0, 7) + ')', { native: s.native, source: s.source });
+  ok(s.tz.svc.length >= 1 && s.tz.svc[0].id === 'QuietHome.Service' && /operation\/service$/.test(s.tz.svc[0].op), 'servizio del pacchetto avviato dalla pagina', s.tz.svc);
   ok(s.tz.keys.indexOf('ChannelUp') >= 0 && s.tz.keys.indexOf('ChannelDown') >= 0, 'tasti canale registrati', s.tz.keys);
   ok(s.items.length >= 5 && s.items.every(i => i.svg), 'riga con ' + s.items.length + ' app e icone nostre', s.items.map(i => i.name));
   ok(s.items[0].name === 'YouTube', 'TizenTube (modulo di TizenBrew) in testa come YouTube', s.items.map(i => i.name));
   ok(!s.base && /wall\d\.jpg/.test(s.wall) && s.wall.indexOf('http') < 0, 'sfondo dal pacchetto, non dalla rete', s.wall);
+  const hint = await page.evaluate(() => document.getElementById('hint').textContent);
+  ok(/scegli · OK apri/.test(hint), 'lingua della TV (italiano) dal pacchetto, senza rete', hint);
   const n0 = launched(data).length;
   await page.keyboard.press('Enter'); await sleep(900);
   last = launched(data).slice(n0).pop() || {};
@@ -164,10 +166,10 @@ async function main() {
   await page.evaluate(() => { Array.from(document.querySelectorAll('#sections .card')).filter(c => /HDMI 2/.test(c.textContent))[0].click(); }); await sleep(600); s = await state(page);
   ok(s.tz.src.type === 'HDMI' && s.tz.src.number === 2 && s.tz.launched[0] === 'org.tizen.tv-viewer', 'HDMI 2: sorgente impostata con la finestra TV, poi visore di sistema', { src: s.tz.src, launched: s.tz.launched });
   await page.keyboard.press('ArrowUp'); await sleep(400); s = await state(page);
-  ok(s.menu === 'Milano Home 3.0.4', '↑ apre il menu', s.menu);
+  ok(s.menu === 'Quiet Home 3.1.0', '↑ apre il menu', s.menu);
   for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter'); await sleep(1500); s = await state(page);
-  ok(s.debug && s.debug.indexOf('app nativa') > 0 && /servizio: ok v3\.0\.4/.test(s.debug), 'diagnostica: app nativa, servizio ok', s.debug && s.debug.slice(0, 300));
+  ok(s.debug && s.debug.indexOf('native app') > 0 && /service: ok v3\.1\.0/.test(s.debug) && /language it/.test(s.debug), 'diagnostica: app nativa, servizio ok', s.debug && s.debug.slice(0, 300));
   await page.screenshot({ path: path.join(SHOTS, 'n8-nativa-diagnostica.png') });
   await page.keyboard.press('Escape'); await sleep(300);
   await page.screenshot({ path: path.join(SHOTS, 'n8-nativa.png') });
@@ -178,12 +180,12 @@ async function main() {
   await page.close(); page = await open();
   let t0 = Date.now(); s = await state(page);
   while (Date.now() - t0 < 20000 && !(s.cache && s.cache.ref === SHA2)) { await sleep(500); s = await state(page); }
-  ok(s.cache && s.cache.ref === SHA2 && s.cache.html.indexOf("VERSION='3.0.4-next'") > 0, 'launcher nuovo scaricato in cache', s.cache && s.cache.ref);
+  ok(s.cache && s.cache.ref === SHA2 && s.cache.html.indexOf("VERSION='3.1.0-next'") > 0, 'launcher nuovo scaricato in cache', s.cache && s.cache.ref);
   await page.close(); page = await open(); s = await state(page);
   ok(s.source === 'cache' && s.ref === SHA2 && s.native, 'riapertura: launcher nuovo dalla cache', { source: s.source, ref: s.ref });
   ok(!s.base && /wall\d\.jpg/.test(s.wall) && s.wall.indexOf('http') < 0, 'sfondo ancora dal pacchetto', s.wall);
   await page.keyboard.press('ArrowUp'); await sleep(400); s = await state(page);
-  ok(s.menu === 'Milano Home 3.0.4-next', 'versione nuova in uso', s.menu);
+  ok(s.menu === 'Quiet Home 3.1.0-next', 'versione nuova in uso', s.menu);
   p = (await get(SVC + '/ping')).json;
   ok(p && p.ref === SHA2 && p.native === true, 'servizio allineato dal launcher e ancora nativo', p && { ref: p.ref, native: p.native });
   ok(errs.length === 0, 'nessun errore di pagina', errs);

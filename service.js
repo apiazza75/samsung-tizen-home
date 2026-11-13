@@ -16,9 +16,9 @@
   var DATA_DIR = process.env.MH_DATA_DIR || '/home/owner/share';
   var CORE_FILE = DATA_DIR + '/milanohome-core.js';
   var CORE_META = DATA_DIR + '/milanohome-core.json';
-  var UA = { 'User-Agent': 'MilanoHome-service' };
+  var UA = { 'User-Agent': 'QuietHome-service' };
   var BACKOFF = [2000, 5000, 10000, 30000, 60000, 120000];
-  function log(m) { console.log('MilanoHome boot: ' + m); }
+  function log(m) { console.log('QuietHome boot: ' + m); }
   function get(url, headers, cb) {
     var done = false, fin = function (c, b) { if (done) return; done = true; cb(c, b); };
     var m = /^(https?):\/\/([^/:]+)(?::(\d+))?(\/.*)?$/.exec(url); if (!m) return fin(0, 'url');
@@ -48,7 +48,7 @@
       G.MH_REF = ref; G.MH_BOOT = boot;
       (new Function('require', 'module', 'exports', '__filename', '__dirname', 'MH_REF', 'MH_BOOT', body))(require, mod, exp, fname, dname, ref, boot);
       state.running = ref; state.source = source; log('core ' + ref.slice(0, 7) + ' (' + source + ')'); return true;
-    } catch (e) { state.lastError = 'errore nel core ' + ref.slice(0, 7) + ': ' + e.message; log(state.lastError); return false; }
+    } catch (e) { state.lastError = 'core error ' + ref.slice(0, 7) + ': ' + e.message; log(state.lastError); return false; }
   }
   function readCache() {
     try { var meta = JSON.parse(fs.readFileSync(CORE_META, 'utf8')); var body = fs.readFileSync(CORE_FILE, 'utf8');
@@ -57,15 +57,15 @@
   }
   function writeCache(ref, body) {
     try { fs.writeFileSync(CORE_FILE, body); fs.writeFileSync(CORE_META, JSON.stringify({ ref: ref, at: Date.now() })); state.cached = ref; return true; }
-    catch (e) { log('core non salvato: ' + e.message); return false; }
+    catch (e) { log('core not saved: ' + e.message); return false; }
   }
   // scarica il core a `ref` e lo esegue (se non è già quello in uso); cb({ref, action, error})
   function fetchAndRun(ref, cb) {
     if (state.running === ref) return cb({ ref: ref, action: 'none' });
     get(CDN + ref + '/service-core.js', UA, function (code, body) {
-      if (code !== 200 || !body || body.length < 1000) { state.lastError = 'core ' + ref.slice(0, 7) + ' non scaricabile (' + code + ')'; return cb({ ref: ref, action: 'error', error: state.lastError }); }
+      if (code !== 200 || !body || body.length < 1000) { state.lastError = 'core ' + ref.slice(0, 7) + ' cannot be downloaded (' + code + ')'; return cb({ ref: ref, action: 'error', error: state.lastError }); }
       if (/^[0-9a-f]{40}$/.test(ref)) writeCache(ref, body);
-      cb({ ref: ref, action: exec(body, ref, 'rete') ? 'updated' : 'error', error: state.lastError });
+      cb({ ref: ref, action: exec(body, ref, 'network') ? 'updated' : 'error', error: state.lastError });
     });
   }
   // un solo controllo alla volta: chi arriva durante un controllo riceve lo stesso risultato
@@ -77,7 +77,7 @@
     get(API, { 'User-Agent': UA['User-Agent'], 'Accept': 'application/vnd.github.sha' }, function (code, body) {
       var sha = (body || '').trim();
       if (code === 200 && /^[0-9a-f]{40}$/.test(sha)) { state.lastSha = sha; state.lastError = null; return fetchAndRun(sha, finish); }
-      state.lastError = 'GitHub non risponde (' + code + ' ' + String(body || '').slice(0, 60) + ')';
+      state.lastError = 'GitHub did not answer (' + code + ' ' + String(body || '').slice(0, 60) + ')';
       if (state.running) return finish({ ref: state.running, action: 'none', error: state.lastError });
       // niente in esecuzione e niente GitHub: provo il ramo main (jsDelivr viene purgato a ogni merge)
       fetchAndRun('main', finish);

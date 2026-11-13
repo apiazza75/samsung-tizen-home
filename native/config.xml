@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://github.com/apiazza75/samsung-tizen-home" version="@VERSION@" viewmodes="maximized">
-    <tizen:application id="MilanoHome.Launcher" package="MilanoHome" required_version="3.0"/>
-    <name>Milano Home</name>
-    <author href="https://github.com/apiazza75/samsung-tizen-home">Milano Home</author>
-    <description>Launcher pulito per Samsung Smart TV.</description>
+    <tizen:application id="QuietHome.Launcher" package="QuietHome" required_version="3.0"/>
+    <name>Quiet Home</name>
+    <author href="https://github.com/apiazza75/samsung-tizen-home">Quiet Home</author>
+    <description>A clean, quiet home screen for Samsung Smart TVs (Tizen).</description>
     <content src="index.html"/>
     <icon src="icon.png"/>
     <feature name="http://tizen.org/feature/screen.size.all"/>
@@ -20,10 +20,10 @@
     </tizen:app-control>
     <tizen:metadata key="http://samsung.com/tv/metadata/prelaunch.support" value="true"/>
     <tizen:profile name="tv-samsung"/>
-    <tizen:service id="MilanoHome.Service">
+    <tizen:service id="QuietHome.Service">
         <tizen:content src="service/service.js"/>
-        <tizen:name>MilanoHomeService</tizen:name>
-        <tizen:description>Servizio di Milano Home</tizen:description>
+        <tizen:name>QuietHomeService</tizen:name>
+        <tizen:description>Quiet Home service</tizen:description>
     </tizen:service>
     <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="enable" encryption="disable" install-location="auto" hwkey-event="enable"/>
 </widget>

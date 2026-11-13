@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=1920, initial-scale=1">
-<title>Milano Home</title>
+<title>Quiet Home</title>
 <style>html,body{width:100%;height:100%;margin:0;background:#05070e;color:#f4f6fb;font-family:"Samsung One",sans-serif;overflow:hidden;cursor:none}
 .boot{position:fixed;left:5vw;bottom:5vh;font-size:1.1vw;color:rgba(244,246,251,.55);letter-spacing:.08em;text-transform:uppercase}</style>
 </head>
 <body>
-<div class="boot" id="boot">Milano Home · avvio…</div>
+<div class="boot" id="boot">Quiet Home · starting…</div>
 <script>
 /* Bootstrap di Milano Home. Questo file e service.js sono volutamente stabili: TizenBrew li legge da jsDelivr senza versione.
    Il launcher vero (launcher.html) viene tenuto in cache sulla TV (localStorage): se c'è, parte SUBITO e senza rete.
@@ -38,29 +38,29 @@
   }
   // launcher.html + icons.js (incorporato al posto di <script src="icons.js">), così la copia in cache è completa e parte senza rete
   function fetchLauncher(ref) {
-    note('Milano Home · carico ' + (ref.length === 40 ? ref.slice(0, 7) : ref) + '…');
+    note('Quiet Home · loading ' + (ref.length === 40 ? ref.slice(0, 7) : ref) + '…');
     return Promise.all([fetchText(CDN + ref + '/app/launcher.html', 15000), fetchText(CDN + ref + '/app/icons.js', 15000)]).then(function (r) {
-      if (r[0].length < 5000 || r[0].indexOf('</html>') < 0 || r[1].indexOf('MH_ICONS') < 0) throw new Error('file incompleti');
+      if (r[0].length < 5000 || r[0].indexOf('</html>') < 0 || r[1].indexOf('MH_ICONS') < 0) throw new Error('incomplete files');
       return r[0].replace('<script src="icons.js"><\/script>', '<script>' + r[1] + '<\/script>');
     });
   }
   // prima installazione (o cache assente): ultimo commit di main, altrimenti il ramo main; si riprova finché non riesce
   function firstLoad() {
     fetchText(API, 6000)
-      .then(function (sha) { sha = sha.trim(); if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('sha?'); return fetchLauncher(sha).then(function (html) { writeCache(sha, html); show(html, sha, 'rete'); }); })
-      .catch(function () { return fetchLauncher('main').then(function (html) { writeCache('main', html); show(html, 'main', 'rete'); }); })   // anche il ripiego va in cache: il launcher lo sostituirà con il commit esatto
+      .then(function (sha) { sha = sha.trim(); if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('sha?'); return fetchLauncher(sha).then(function (html) { writeCache(sha, html); show(html, sha, 'network'); }); })
+      .catch(function () { return fetchLauncher('main').then(function (html) { writeCache('main', html); show(html, 'main', 'network'); }); })   // anche il ripiego va in cache: il launcher lo sostituirà con il commit esatto
       .catch(function (e) {
         var wait = [3, 5, 10, 20, 30][Math.min(attempt++, 4)];
-        note('Milano Home · rete non disponibile (' + (e && e.message ? e.message : e) + ') · riprovo tra ' + wait + ' s · Invio riprova subito');
+        note('Quiet Home · no network (' + (e && e.message ? e.message : e) + ') · retrying in ' + wait + ' s · OK retries now');
         retryTimer = setTimeout(firstLoad, wait * 1000);
       });
   }
   document.addEventListener('keydown', function (e) { if (!shown && e.keyCode === 13) { clearTimeout(retryTimer); firstLoad(); } });
   var m = /[?&]ref=([\w.-]+)/.exec(location.search);
-  if (m) { fetchLauncher(m[1]).then(function (html) { show(html, m[1], 'rete'); }, function (e) { note('Milano Home · ' + m[1] + ' non scaricabile (' + (e && e.message ? e.message : e) + ')'); }); return; }
+  if (m) { fetchLauncher(m[1]).then(function (html) { show(html, m[1], 'network'); }, function (e) { note('Quiet Home · ' + m[1] + ' cannot be downloaded (' + (e && e.message ? e.message : e) + ')'); }); return; }
   // app nativa (.wgt): il pacchetto porta con sé una copia del launcher (bundled.js), usata finché la cache non ne ha una scaricata
   var cached = readCache(), packed = window.MH_BUNDLED && window.MH_BUNDLED.ref && window.MH_BUNDLED.html ? window.MH_BUNDLED : null;
-  if (cached) show(cached.html, cached.ref, 'cache'); else if (packed) show(packed.html, packed.ref, 'pacchetto'); else firstLoad();
+  if (cached) show(cached.html, cached.ref, 'cache'); else if (packed) show(packed.html, packed.ref, 'package'); else firstLoad();
 })();
 </script>
 </body>

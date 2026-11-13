@@ -5,7 +5,7 @@
    ES5 per Node vecchi. Gli endpoint che agiscono sulla TV accettano solo richieste dalla pagina di TizenBrew. */
 (function () {
   'use strict';
-  var VERSION = '3.0.4';
+  var VERSION = '3.1.0';
   // commit in uso e bootstrap: li passa service.js come argomenti (nella sandbox di TizenBrew `global` non esiste)
   var REF = (function () { try { return (typeof MH_REF !== 'undefined' && MH_REF) || Function('return this')().MH_REF || null; } catch (e) { return null; } })();
   var BOOT = (function () { try { return (typeof MH_BOOT !== 'undefined' && MH_BOOT) || Function('return this')().MH_BOOT || null; } catch (e) { return null; } })();
@@ -41,7 +41,7 @@
   var sockets = [];
   var SELF_APP = NATIVE ? NATIVE.app : (function () { try { return tizen.application.getCurrentApplication().appInfo.packageId + '.TizenBrewStandalone'; } catch (e) { return 'xvvl3S1bvH.TizenBrewStandalone'; } })();
   function hasTizen() { return !!(typeof tizen !== 'undefined' && tizen && tizen.application); }
-  function log(m) { console.log('MilanoHome: ' + m); }
+  function log(m) { console.log('QuietHome: ' + m); }
   function mkdir(d) { try { fs.mkdirSync(d); } catch (e) {} }
 
   /* --- stato persistente (token del canale TLS, combinazione host/porta che ha funzionato) --- */
@@ -121,7 +121,7 @@
      si apre (misurato): senza questo la richiesta restava appesa e l'osservatore del ritorno non partiva mai. Quindi si osserva
      subito e si risponde alla callback oppure dopo 1,5 s; se l'app non si è aperta l'osservatore si ferma da solo dopo 30 s. */
   function launchReply(res, id, back) {
-    var done = false, t = setTimeout(function () { fin(null, 'senza conferma'); }, 1500);
+    var done = false, t = setTimeout(function () { fin(null, 'unconfirmed'); }, 1500);
     function fin(err, how) { if (done) return; done = true; clearTimeout(t); if (err) json(res, 500, { error: err }); else json(res, 200, { ok: true, method: how }); }
     if (back === '1') watchApp(id); else if (watch) { clearInterval(watch.timer); watch = null; }
     return fin;
@@ -148,7 +148,7 @@
   }
   function openBrew(full, cb) {
     if (!hasTizen()) return cb('no tizen');
-    function plain(why) { try { tizen.application.launch(BREW_APP, function () { cb(null, why ? 'launch (' + why + ')' : 'launch'); }, function (e) { cb('TizenBrew: ' + (e && e.message ? e.message : 'non si apre')); }); } catch (e) { cb('TizenBrew: ' + e.message); } }
+    function plain(why) { try { tizen.application.launch(BREW_APP, function () { cb(null, why ? 'launch (' + why + ')' : 'launch'); }, function (e) { cb('TizenBrew: ' + (e && e.message ? e.message : 'did not open')); }); } catch (e) { cb('TizenBrew: ' + e.message); } }
     var i = full ? full.indexOf('/') : -1;
     if (i < 1) return plain(null);
     try {
@@ -184,7 +184,7 @@
     var done = false, fin = function (e, b) { if (done) return; done = true; cb(e, b); };
     var m = /^(https?):\/\/([^/:]+)(?::(\d+))?(\/.*)?$/.exec(url); if (!m) return fin('url');
     try {
-      var req = (m[1] === 'https' ? https : http).get({ host: m[2], port: m[3] ? +m[3] : (m[1] === 'https' ? 443 : 80), path: m[4] || '/', headers: { 'User-Agent': 'MilanoHome-service' } }, function (res) {
+      var req = (m[1] === 'https' ? https : http).get({ host: m[2], port: m[3] ? +m[3] : (m[1] === 'https' ? 443 : 80), path: m[4] || '/', headers: { 'User-Agent': 'QuietHome-service' } }, function (res) {
         if (res.statusCode !== 200) { res.resume(); return fin('HTTP ' + res.statusCode); }
         var parts = []; res.on('data', function (c) { parts.push(c); }); res.on('end', function () { fin(null, Buffer.concat(parts)); });
       });
@@ -262,15 +262,15 @@
     var useToken = !!(c.tls && c.api === 'v2' && state.token && !c.noToken);
     var rec = { host: c.host, port: c.port, tls: c.tls, api: c.api, token: useToken, result: null, code: null, reason: null, ms: 0, bytes: 0, events: events, at: t0 };
     attempts.push(rec); if (attempts.length > 16) attempts.shift();
-    var name = B.from('Milano Home', 'utf8').toString('base64');
+    var name = B.from('Quiet Home', 'utf8').toString('base64');
     var path = '/api/' + c.api + '/channels/samsung.remote.control?name=' + name + (useToken ? '&token=' + encodeURIComponent(state.token) : '');
     var opts = { host: c.host, port: c.port, path: path, method: 'GET',
       headers: { 'Connection': 'Upgrade', 'Upgrade': 'websocket', 'Sec-WebSocket-Version': '13', 'Sec-WebSocket-Key': crypto.randomBytes(16).toString('base64') } };
     if (c.tls) opts.rejectUnauthorized = false;
     var done = false, req = null;
     function fail(err, kind, result) { if (done) return; done = true; clearTimeout(timer); rec.result = result || kind; rec.ms = Date.now() - t0; rec.bytes = bytes; try { if (req) req.abort(); } catch (e) {} cb({ message: String(err), kind: kind || 'error', code: rec.code, usedToken: useToken }); }
-    var timer = setTimeout(function () { fail('nessuna conferma dalla TV: premi "Consenti" sull\'avviso e riprova', 'timeout', 'nessuna risposta in 30 s'); }, c.api === 'v3' ? 8000 : 30000);
-    try { req = (c.tls ? https : http).request(opts); } catch (e) { return fail(e.message, 'connect', 'errore: ' + e.message); }
+    var timer = setTimeout(function () { fail('no confirmation from the TV: press "Allow" on the TV prompt and try again', 'timeout', 'no answer in 30 s'); }, c.api === 'v3' ? 8000 : 30000);
+    try { req = (c.tls ? https : http).request(opts); } catch (e) { return fail(e.message, 'connect', 'error: ' + e.message); }
     req.on('upgrade', function (res, socket, head) {
       events.push('101 upgrade ' + (Date.now() - t0) + 'ms');
       var ch = { sock: socket, listeners: [], closed: false, tls: c.tls, combo: c };
@@ -278,30 +278,30 @@
       ch.close = function () { if (ch.closed) return; ch.closed = true; try { socket.end(); } catch (e) {} if (chan === ch) chan = null; };
       function broadcast(msg) { ch.listeners.slice().forEach(function (fn) { fn(msg); }); }
       var feed = wsParser({
-        text: function (txt) { var msg; try { msg = JSON.parse(txt); } catch (e) { events.push('testo non JSON (' + txt.length + ' byte)'); return; }
+        text: function (txt) { var msg; try { msg = JSON.parse(txt); } catch (e) { events.push('non-JSON text (' + txt.length + ' byte)'); return; }
           if (events.length < 8) events.push('evento ' + (msg.event || '?') + ' ' + (Date.now() - t0) + 'ms');
           if (!done) {
             if (msg.event === 'ms.channel.connect') { done = true; clearTimeout(timer); rec.result = 'ok'; rec.ms = Date.now() - t0; rec.bytes = bytes;
               var tok = msg.data && msg.data.token; if (tok && c.api === 'v2') { state.token = String(tok); }
               state.chan = { host: c.host, tls: c.tls, api: c.api }; saveState(state);
               cb(null, ch); return; }
-            if (msg.event === 'ms.channel.unauthorized') { fail('comando rifiutato: consenti "Milano Home" nella TV (Impostazioni → Generale → Gestione dispositivi esterni)', 'unauthorized', 'rifiutato (ms.channel.unauthorized)'); ch.close(); }
+            if (msg.event === 'ms.channel.unauthorized') { fail('command refused: allow "Quiet Home" on the TV (Settings → General → External Device Manager)', 'unauthorized', 'refused (ms.channel.unauthorized)'); ch.close(); }
             // la TV non ha mostrato (o nessuno ha accettato) la richiesta di accoppiamento: si prova il canale successivo (il v3 non la richiede)
-            if (msg.event === 'ms.channel.timeOut') { fail('la TV non ha accettato la richiesta di accoppiamento (ms.channel.timeOut)', 'connect', 'ms.channel.timeOut' + (useToken ? ' con token' : '')); ch.close(); }
+            if (msg.event === 'ms.channel.timeOut') { fail('the TV did not accept the pairing request (ms.channel.timeOut)', 'connect', 'ms.channel.timeOut' + (useToken ? ' with token' : '')); ch.close(); }
             return; }
           broadcast(msg); },
         ping: function (p) { try { socket.write(wsFrame(p, 0xA)); } catch (e) {} },
         close: function (code, reason) { rec.code = code; rec.reason = reason; events.push('frame close ' + code + (reason ? ' ' + reason : '') + ' ' + (Date.now() - t0) + 'ms'); ch.close(); }
       });
-      socket.on('data', function (d) { bytes += d.length; try { feed(d); } catch (e) { log('frame ws non valido: ' + e.message); events.push('frame non valido: ' + e.message); ch.close(); } });
-      socket.on('error', function (e) { if (!done) fail(e.message, 'connect', 'errore socket: ' + e.message); ch.closed = true; if (chan === ch) chan = null; broadcast({ event: 'mh.closed', error: e.message }); });
+      socket.on('data', function (d) { bytes += d.length; try { feed(d); } catch (e) { log('invalid ws frame: ' + e.message); events.push('invalid frame: ' + e.message); ch.close(); } });
+      socket.on('error', function (e) { if (!done) fail(e.message, 'connect', 'socket error: ' + e.message); ch.closed = true; if (chan === ch) chan = null; broadcast({ event: 'mh.closed', error: e.message }); });
       socket.on('close', function () { ch.closed = true; if (chan === ch) chan = null;
-        if (!done) fail('connessione chiusa dalla TV' + (rec.code ? ' (codice ' + rec.code + (rec.reason ? ' ' + rec.reason : '') + ')' : ''), 'connect', 'chiusa dalla TV dopo ' + (Date.now() - t0) + ' ms' + (rec.code ? ', codice ' + rec.code + (rec.reason ? ' ' + rec.reason : '') : ', senza frame di chiusura') + (bytes ? ', ' + bytes + ' byte ricevuti' : ', nessun dato'));
+        if (!done) fail('connection closed by the TV' + (rec.code ? ' (code ' + rec.code + (rec.reason ? ' ' + rec.reason : '') + ')' : ''), 'connect', 'closed by the TV after ' + (Date.now() - t0) + ' ms' + (rec.code ? ', code ' + rec.code + (rec.reason ? ' ' + rec.reason : '') : ', without a close frame') + (bytes ? ', ' + bytes + ' bytes received' : ', no data'));
         broadcast({ event: 'mh.closed' }); });
       if (head && head.length) { bytes += head.length; feed(head); }
     });
-    req.on('response', function (r) { r.resume(); fail('API telecomando non disponibile (HTTP ' + r.statusCode + ')', 'connect', 'HTTP ' + r.statusCode + ' invece di 101'); });
-    req.on('error', function (e) { fail(e.message, 'connect', 'errore: ' + e.message); });
+    req.on('response', function (r) { r.resume(); fail('remote-control API not available (HTTP ' + r.statusCode + ')', 'connect', 'HTTP ' + r.statusCode + ' instead of 101'); });
+    req.on('error', function (e) { fail(e.message, 'connect', 'error: ' + e.message); });
     req.setTimeout(31000, function () { try { req.abort(); } catch (e) {} fail('timeout', 'timeout', 'timeout'); });
     req.end();
   }
@@ -335,10 +335,10 @@
     tvBusy = true; var job = tvQueue.shift();
     withChannel(function (err, c) {
       if (err) { tvBusy = false; var rest = tvQueue; tvQueue = []; job.cb(err); rest.forEach(function (j) { j.cb(err); }); return; }
-      var done = false, t = setTimeout(function () { finish('la TV non ha risposto (' + job.ev + ')'); }, job.ms);
+      var done = false, t = setTimeout(function () { finish('the TV did not answer (' + job.ev + ')'); }, job.ms);
       function finish(e, data) { if (done) return; done = true; clearTimeout(t); var i = c.listeners.indexOf(on); if (i >= 0) c.listeners.splice(i, 1); tvBusy = false; job.cb(e, data); scheduleIdleClose(); pump(); }
       function on(m) { if (m.event === 'mh.closed') return finish(m.error || 'connessione chiusa dalla TV');
-        if (m.event === 'ms.error') return finish('ms.error: ' + ((m.data && m.data.message) || 'comando rifiutato'));
+        if (m.event === 'ms.error') return finish('ms.error: ' + ((m.data && m.data.message) || 'command refused'));
         if (job.ev && m.event === job.ev) finish(null, m); }
       c.listeners.push(on);
       try { c.send(job.msg); } catch (e) { return finish(e.message); }
@@ -372,7 +372,7 @@
     hub.pending = [cb];
     tvRequest({ method: 'ms.channel.emit', params: { event: 'ed.installedApp.get', to: 'host' } }, 'ed.installedApp.get', 10000, function (err, msg) {
       var list = null;
-      if (!err) { try { list = msg.data.data; } catch (e) {} if (!Array.isArray(list)) err = 'risposta inattesa dalla TV'; }
+      if (!err) { try { list = msg.data.data; } catch (e) {} if (!Array.isArray(list)) err = 'unexpected answer from the TV'; }
       if (!err) {
         hub.apps = list.map(function (a) { return { appId: String(a.appId || ''), name: String(a.name || ''), icon: String(a.icon || ''), type: a.app_type }; });
         hub.at = Date.now(); hub.error = null; log('Smart Hub: ' + hub.apps.length + ' app');
@@ -401,15 +401,15 @@
         if (!e1 && d1 && d1.length > 100) return save(d1);
         hubList(function (err, list) {
           var h = null; (list || []).forEach(function (x) { if (x.appId === id) h = x; });
-          if (!h) return cb(err ? String(err) : 'app non presente nello Smart Hub');
+          if (!h) return cb(err ? String(err) : 'app not in the Smart Hub list');
           var readDirect = function (next) { if (!h.icon) return next(); fs.readFile(h.icon, function (e2, d2) { if (!e2 && d2 && d2.length > 100) return save(d2); next(); }); };
           readDirect(function () {
             tvRequest({ method: 'ms.channel.emit', params: { event: 'ed.apps.icon', to: 'host', data: { iconPath: h.icon } } }, 'ed.apps.icon', 15000, function (e3, msg) {
               if (e3) return cb(String(e3));
               var b64 = msg && msg.data && (msg.data.imageBase64 || msg.data.image || msg.data.data);
-              if (!b64 || typeof b64 !== 'string') return cb('icona non fornita dalla TV');
+              if (!b64 || typeof b64 !== 'string') return cb('icon not provided by the TV');
               var buf = B.from(b64.replace(/^data:[^,]*,/, ''), 'base64');
-              if (buf.length < 100) return cb('icona vuota');
+              if (buf.length < 100) return cb('empty icon');
               save(buf);
             });
           });
@@ -474,7 +474,7 @@
     }
     if (!fromPage(req)) return json(res, 403, { error: 'forbidden' });
     if (path === '/update') {
-      if (!BOOT) return json(res, 200, { ref: REF, action: 'unsupported', error: 'bootstrap 1.x: per aggiornare il servizio riavvia TizenBrew' });
+      if (!BOOT) return json(res, 200, { ref: REF, action: 'unsupported', error: 'bootstrap 1.x: restart TizenBrew to update the service' });
       var answered = false, ut = setTimeout(function () { if (!answered) { answered = true; json(res, 200, { ref: REF, action: 'pending' }); } }, 25000);
       return BOOT.update(function (r) { if (answered) return; answered = true; clearTimeout(ut); json(res, 200, r); });
     }

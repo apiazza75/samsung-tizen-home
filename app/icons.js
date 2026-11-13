@@ -308,7 +308,7 @@
     },
 
     home: {
-      names: ['home', 'milano home'], ids: [],
+      names: ['home', 'quiet home', 'milano home'], ids: [],
       bg: '#3b82f6', tint: '#3b82f6',
       svg: S('<path d="M50 20 L18 48 H28 V78 H44 V60 H56 V78 H72 V48 H82 Z" fill="#ffffff"/>')
     },

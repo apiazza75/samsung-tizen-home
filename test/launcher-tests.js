@@ -19,7 +19,7 @@ function spawn(name, args, env) { const c = cp.spawn(process.execPath, args, { e
 async function waitPing(ms) { const t0 = Date.now(); while (Date.now() - t0 < ms) { const r = await get(SVC + '/ping'); if (r.code === 200) return r.json; await sleep(250); } return null; }
 const INJECT = "window.MH_CDN='" + NET + "/gh/apiazza75/samsung-tizen-home@';window.MH_API='" + NET + "/api/commits/main';";
 const MODULES = [{ fullName: 'npm/@foxreis/tizentube', name: '@foxreis/tizentube', appName: 'TizenTube', appPath: 'http://127.0.0.1:8081/module/npm%2F%40foxreis%2Ftizentube/index.html', keys: [], packageType: 'mods', moduleType: 'npm', version: '1.5.2', evaluateScriptOnDocumentStart: true },
-  { fullName: 'gh/apiazza75/samsung-tizen-home', name: 'apiazza75/samsung-tizen-home', appName: 'Milano Home', appPath: MODULE, keys: ['ChannelUp', 'ChannelDown'], packageType: 'app', moduleType: 'gh', version: '2.0.0' }];
+  { fullName: 'gh/apiazza75/samsung-tizen-home', name: 'apiazza75/samsung-tizen-home', appName: 'Quiet Home', appPath: MODULE, keys: ['ChannelUp', 'ChannelDown'], packageType: 'app', moduleType: 'gh', version: '2.0.0' }];
 
 function watchPage(page, errs) {
   page.on('pageerror', e => errs.push('pageerror: ' + e.message));
@@ -48,12 +48,14 @@ async function main() {
   { const pre = await ctx.newPage(); await pre.goto('http://127.0.0.1:8081/'); await pre.evaluate(() => { localStorage.setItem('mh_prefs', JSON.stringify({ order: ['hdmi1', 'hdmi2', 'tizenbrew', 'off', '11101200001.Netflix'], hidden: [], hdmi: { 1: 'Decoder' }, last: null, back: true })); }); await pre.close(); }
   let page = await openLauncher(ctx, errs); let s = await state(page);
   ok(!s.items.some(i => /HDMI|Decoder|TizenBrew|Spegni/.test(i.name)) && (await page.evaluate(() => JSON.parse(localStorage.getItem('mh_prefs')))).v === 2 && (await page.evaluate(() => JSON.parse(localStorage.getItem('mh_prefs')))).hdmi[1] === 'Decoder', 'preferenze 1.x azzerate una volta (riga = solo preferiti), nomi HDMI conservati', s.items.map(i => i.name));
-  ok(s.ref === SHA1 && s.source === 'rete', 'launcher dal commit ' + SHA1.slice(0, 7) + ' via rete', { ref: s.ref, source: s.source });
+  ok(s.ref === SHA1 && s.source === 'network', 'launcher dal commit ' + SHA1.slice(0, 7) + ' via rete', { ref: s.ref, source: s.source });
   ok(s.cache && s.cache.ref === SHA1 && s.cache.html.indexOf('window.MH_ICONS') > 0 && s.cache.html.indexOf('<script src="icons.js"></script>') < 0, 'cache in localStorage con le icone incorporate', s.cache && { ref: s.cache.ref, len: s.cache.html.length });
   ok(s.items.length >= 5 && s.items.length <= 8, 'riga con ' + s.items.length + ' preferiti', s.items.map(i => i.name));
   ok(s.items.every(i => i.svg) && s.items.some(i => i.name === 'YouTube') && s.items.some(i => i.name === 'Netflix'), 'tutte le tile della riga con icona nostra (YouTube da TizenTube, Netflix…)', s.items);
   ok(s.items.filter(i => i.focus).length === 1, 'una tile a fuoco');
   ok(/wall1\.jpg/.test(s.wall) && s.wall.indexOf('/asset') < 0, 'sfondo dal commit (jsDelivr)', s.wall);
+  const ui = await page.evaluate(() => ({ hint: document.getElementById('hint').textContent, lang: document.documentElement.lang, date: document.getElementById('date').textContent, wx: document.getElementById('weather').textContent }));
+  ok(ui.lang === 'it' && /scegli · OK apri/.test(ui.hint) && /scegli la città/.test(ui.wx), 'lingua della TV (italiano) scaricata da app/lang/it.json; meteo in attesa della città', ui);
   ok(s.tint, 'tinta dello sfondo attiva (immagine piccola, non gradiente a tutto schermo)');
   await page.screenshot({ path: path.join(SHOTS, 'p1-home.png') });
   await key(page, 'ArrowRight'); await sleep(400); s = await state(page); ok(s.items[1].focus, '→ sposta il fuoco');
@@ -74,15 +76,15 @@ async function main() {
   for (let i = 0; i < 8; i++) await key(page, 'ArrowUp'); await sleep(500); s = await state(page); ok(!s.gridOpen, '↑ oltre la prima sezione chiude la griglia');
   await key(page, 'ArrowDown'); await sleep(500);
   await key(page, 'Escape'); await sleep(600); s = await state(page); ok(!s.gridOpen, 'Indietro chiude la griglia');
-  await key(page, 'ArrowUp'); await sleep(400); s = await state(page); ok(s.menu === 'Milano Home 3.0.4', '↑ apre il menu', s.menu);
+  await key(page, 'ArrowUp'); await sleep(400); s = await state(page); ok(s.menu === 'Quiet Home 3.1.0', '↑ apre il menu', s.menu);
   await page.screenshot({ path: path.join(SHOTS, 'p1-menu.png') });
   for (let i = 0; i < 6; i++) await key(page, 'ArrowDown');
   await key(page, 'Enter'); await sleep(800); s = await state(page);
-  ok(s.debug && /commit 1111111 da rete/.test(s.debug) && /servizio: ok v3\.0\.4 commit 1111111/.test(s.debug) && /Smart Hub: 6 app dal canale/.test(s.debug) && /canale ok su 127\.0\.0\.2:8002/.test(s.debug), 'Diagnostica: commit, servizio, Smart Hub, canale', s.debug && s.debug.slice(0, 600));
+  ok(s.debug && /commit 1111111 from network/.test(s.debug) && /service: ok v3\.1\.0 commit 1111111/.test(s.debug) && /Smart Hub: 6 apps from the channel/.test(s.debug) && /channel ok on 127\.0\.0\.2:8002/.test(s.debug), 'Diagnostica: commit, servizio, Smart Hub, canale', s.debug && s.debug.slice(0, 600));
   await page.screenshot({ path: path.join(SHOTS, 'p1-diag.png') });
   await key(page, 'Escape'); await sleep(6000); // il controllo aggiornamenti parte dopo 4 s
   await key(page, 'ArrowUp'); for (let i = 0; i < 6; i++) await key(page, 'ArrowDown'); await key(page, 'Enter'); await sleep(800); s = await state(page);
-  ok(s.debug && /aggiornamento: launcher allineato \(1111111\) · servizio: allineato/.test(s.debug), 'controllo aggiornamenti: launcher e servizio allineati', s.debug && s.debug.split('\n')[1]);
+  ok(s.debug && /update: launcher up to date \(1111111\) · service: up to date/.test(s.debug), 'controllo aggiornamenti: launcher e servizio allineati', s.debug && s.debug.split('\n')[1]);
   await key(page, 'Escape'); await sleep(300);
   ok(errs.length === 0, 'nessun errore di console o di pagina', errs);
   await page.close();
@@ -97,13 +99,13 @@ async function main() {
   await page.screenshot({ path: path.join(SHOTS, 'p2-offline.png') });
   await sleep(5500); s = await state(page);
   await key(page, 'ArrowUp'); for (let i = 0; i < 6; i++) await key(page, 'ArrowDown'); await key(page, 'Enter'); await sleep(800); s = await state(page);
-  ok(s.debug && /aggiornamento: errore/.test(s.debug) && /da cache/.test(s.debug), 'Diagnostica senza rete: errore di aggiornamento riportato, launcher da cache', s.debug && s.debug.slice(0, 400));
+  ok(s.debug && /update: error/.test(s.debug) && /from cache/.test(s.debug), 'Diagnostica senza rete: errore di aggiornamento riportato, launcher da cache', s.debug && s.debug.slice(0, 400));
   ok(errs.length === 0, 'nessun errore di pagina senza rete', errs);
   await page.close();
 
   console.log('\n[P3] main avanza: il launcher scarica il nuovo (per la prossima apertura) e aggiorna subito il servizio');
   const over = fs.mkdtempSync(path.join(os.tmpdir(), 'mh-over-')); fs.mkdirSync(path.join(over, 'app'));
-  fs.writeFileSync(path.join(over, 'app', 'launcher.html'), fs.readFileSync(path.join(ROOT, 'app', 'launcher.html'), 'utf8').replace("var VERSION='3.0.4';", "var VERSION='2.0.0-next';"));
+  fs.writeFileSync(path.join(over, 'app', 'launcher.html'), fs.readFileSync(path.join(ROOT, 'app', 'launcher.html'), 'utf8').replace("var VERSION='3.1.0';", "var VERSION='2.0.0-next';"));
   await get(NET + '/__ctl?offline=0&sha=' + SHA2 + '&override=' + encodeURIComponent(SHA2 + ':' + over));
   page = await openLauncher(ctx, errs); s = await state(page);
   ok(s.ref === SHA1 && s.source === 'cache', 'apertura ancora dalla cache vecchia');
@@ -116,7 +118,7 @@ async function main() {
   await page.close();
   page = await openLauncher(ctx, errs); s = await state(page);
   ok(s.ref === SHA2 && s.source === 'cache', 'apertura successiva: launcher nuovo dalla cache');
-  await key(page, 'ArrowUp'); await sleep(300); s = await state(page); ok(s.menu === 'Milano Home 2.0.0-next', 'versione nuova in uso', s.menu);
+  await key(page, 'ArrowUp'); await sleep(300); s = await state(page); ok(s.menu === 'Quiet Home 2.0.0-next', 'versione nuova in uso', s.menu);
   await key(page, 'Escape'); await sleep(300);
   ok(errs.length === 0, 'nessun errore di pagina durante l\'aggiornamento', errs);
   await page.close();
@@ -126,16 +128,16 @@ async function main() {
   await get(NET + '/__ctl?offline=2');   // il proxy di TizenBrew consegna index.html, GitHub e jsDelivr non rispondono
   page = await ctx2.newPage(); watchPage(page, errs);
   await page.goto(MODULE); await sleep(4000); let boot = await page.evaluate(() => document.getElementById('boot') ? document.getElementById('boot').textContent : 'launcher');
-  ok(/rete non disponibile/.test(boot) || boot === 'launcher', 'stato mostrato: ' + boot);
+  ok(/no network/.test(boot) || boot === 'launcher', 'stato mostrato: ' + boot);
   await get(NET + '/__ctl?offline=0'); await page.waitForSelector('#row .item', { timeout: 40000 }); s = await state(page);
-  ok(s.source === 'rete' && s.items.length >= 5, 'launcher partito da solo al ritorno della rete');
+  ok(s.source === 'network' && s.items.length >= 5, 'launcher partito da solo al ritorno della rete');
   await page.close(); await ctx2.close();
 
   console.log('\n[P4b] prima installazione con GitHub API giù ma jsDelivr su: ripiego sul ramo main, messo in cache');
   const ctx4 = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
   await get(NET + '/__ctl?offline=3');   // solo l\'API di GitHub giù
   page = await ctx4.newPage(); watchPage(page, errs); await page.goto(MODULE); await page.waitForSelector('#row .item', { timeout: 40000 }); await sleep(800); s = await state(page);
-  ok(s.ref === 'main' && s.source === 'rete' && s.cache && s.cache.ref === 'main' && s.cache.html.indexOf('window.MH_ICONS') > 0, 'launcher dal ramo main, salvato in cache', { ref: s.ref, cache: s.cache && s.cache.ref });
+  ok(s.ref === 'main' && s.source === 'network' && s.cache && s.cache.ref === 'main' && s.cache.html.indexOf('window.MH_ICONS') > 0, 'launcher dal ramo main, salvato in cache', { ref: s.ref, cache: s.cache && s.cache.ref });
   await page.close(); await get(NET + '/__ctl?offline=2');
   page = await ctx4.newPage(); watchPage(page, errs); await page.goto(MODULE); await page.waitForSelector('#row .item', { timeout: 20000 }); s = await state(page);
   ok(s.ref === 'main' && s.source === 'cache', 'riapertura senza rete dalla cache del ripiego');
