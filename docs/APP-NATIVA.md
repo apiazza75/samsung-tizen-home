@@ -26,17 +26,31 @@ node tools/build-native.js          # out/native/ e dist/MilanoHome-unsigned.wgt
 ```
 
 Il pacchetto incorpora launcher e core del commit corrente. Va costruito **dopo** che la 3.0.0 è su `main`: al primo avvio launcher e
-servizio si allineano all'ultimo commit di `main`, che deve quindi conoscere la modalità nativa.
+servizio si allineano all'ultimo commit di `main`, che deve quindi conoscere la modalità nativa. La 3.0.0 è su `main` dal 13/11/2026
+(commit `3c8a253`, PR #11).
 
-## Firma e installazione (da fare, non ancora provate sulla TV)
+## Firma e installazione (in corso dal 13/11/2026, non ancora provate sulla TV)
 
 La TV installa solo pacchetti firmati e solo con la **Modalità sviluppatore** attiva (Apps → digitare 12345 → Developer mode On →
-IP del computer → riavvio della TV). Il file prodotto qui **non è firmato**. Due strade:
+IP del computer → riavvio della TV). Il file prodotto qui **non è firmato**.
 
-1. **Tizen Studio** (strumenti ufficiali Samsung) sul Mac: profilo di certificato, poi
-   `tizen package -t wgt -s <profilo> -- dist/MilanoHome-unsigned.wgt` e `tizen install -n MilanoHome.wgt -t <TV>`.
-2. **Firma senza Tizen Studio** con una libreria di terze parti (`reisxd/tizen.js`, la stessa usata da TizenBrew Installer) e
-   installazione con TizenBrew Installer Desktop, che su Tizen 6 installa il `.wgt` così com'è.
+**Strada scelta: Tizen Studio** (strumenti ufficiali Samsung) sul Mac, con certificato Samsung legato al DUID della TV:
+
+1. Tizen Studio con *Samsung TV Extensions* e *Samsung Certificate Extension* (dalla 2.0.73 in su: le versioni precedenti non
+   creano più certificati da settembre 2025). Su Mac con processore Apple non è supportato ufficialmente: gira con Rosetta.
+2. Modalità sviluppatore sulla TV con l'IP del Mac, riavvio, `sdb connect <IP della TV>`, `sdb devices`.
+3. Certificate Manager: profilo Samsung (account Samsung), certificato autore + distributore con il DUID della TV. Il certificato
+   autore va **conservato**: un aggiornamento firmato da un autore diverso viene rifiutato finché non si disinstalla l'app.
+4. `tizen package -t wgt -s <profilo> -- dist/MilanoHome-unsigned.wgt`, poi `tizen install -n <file firmato> -t <TV>`.
+
+Attenzione all'**IP del computer nella Modalità sviluppatore**: TizenBrew lo vuole a `127.0.0.1` (lo usa per rilanciarsi in debug),
+l'installazione dal Mac lo vuole all'IP del Mac. Prima di cambiarlo va annotato il valore attuale; a installazione fatta va rimesso
+com'era, con un altro riavvio.
+
+Strada scartata per ora: firma con `reisxd/tizen.js` e installazione con TizenBrew Installer Desktop. Letto nel suo codice
+(`tizenbrew-installer-service/index.js`, `resignOrInstall`): sotto Tizen 7 l'installer **non firma**, copia il `.wgt` in
+`/home/owner/share/tmp/sdk_tools/` e lancia `vd_appinstall`; la firma serve quindi comunque, e non è accertato che la QN90A accetti
+un certificato distributore non Samsung.
 
 ## Cosa è collaudato e cosa no
 

@@ -5,7 +5,21 @@ Lingua di lavoro: italiano. L'utente vuole: prima verificare e progettare, poi i
 poi consegnare UNA volta (niente fix a tentativi, niente "prova questo e vediamo"). Le modifiche vanno sempre unite su main,
 non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
 
-## Stato del repository
+## Aggiornamento del 13 novembre 2026: app nativa, firma e installazione in corso
+- main = 3.0.0 (PR #11, commit 3c8a253): collaudo completo rieseguito prima del merge (ES5, servizio, launcher, 42 verifiche
+  dell'app nativa), Action di purge riuscita. Il modulo TizenBrew sulla TV passa da solo alla 3.0.0 alla prossima apertura.
+- Pacchetto costruito da main: `node tools/build-native.js` → dist/MilanoHome-unsigned.wgt (1101 KB, ref 3c8a253), NON firmato.
+- Decisioni dell'utente: firma e installazione con Tizen Studio sul Mac (da installare); i comandi sul Mac li esegue l'utente uno
+  alla volta e riporta l'esito (le sessioni cloud non vedono la rete di casa; la cartella "Milano Home" del Mac è nell'elenco di
+  Remote Control ma non viene offerta alle sessioni cloud); conferma esplicita prima di OGNI modifica alla TV.
+- Passi, nell'ordine (dettagli in docs/APP-NATIVA.md): 1) stato del Mac (sistema, processore, strumenti presenti); 2) Tizen Studio
+  + estensioni Samsung; 3) Modalità sviluppatore sulla TV con l'IP del Mac (annotare prima il valore attuale: TizenBrew lo vuole a
+  127.0.0.1) e riavvio; 4) sdb connect e DUID; 5) certificato Samsung; 6) firma; 7) installazione; 8) le cinque verifiche sulla TV
+  elencate in APP-NATIVA.md; 9) IP del computer rimesso com'era.
+- Fatto al 13/11: nessuna modifica alla TV. Da chiarire al passo 3: il valore attuale dell'IP del computer sulla TV potrebbe
+  spiegare perché l'autoavvio di TizenBrew non parte (punto 6 più sotto).
+
+## Stato del repository (al 31 ottobre 2026)
 - main = 2.1.0: 2.0.0 (PR #5) + Action purge (PR #6, #9) + correzioni Codex 2.0.1 (PR #7) + 2.1.0 (canale v2/v3, ritorno con
   app control, prestazioni, orologio leggero, preferenze azzerate).
 - Storia: 8c58710 = 1.5.0 · 9e90648 = 1.5.1 · f7a8fce = 1.6.0 · 9bdfd45 = documentazione · 2.0.0 (PR #5).
