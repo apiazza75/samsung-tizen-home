@@ -31,7 +31,7 @@ async function main() {
   const files = ['config.xml', 'icon.png', 'index.html', 'native.js', 'bundled.js', 'wall1.jpg', 'service/service.js', 'service/boot.js', 'service/service-core.js', 'service/bundled.json'];
   ok(files.every(f => fs.existsSync(path.join(pkg, f))), 'pacchetto assemblato con tutti i file', files.filter(f => !fs.existsSync(path.join(pkg, f))));
   const cfg = fs.readFileSync(path.join(pkg, 'config.xml'), 'utf8');
-  ok(/version="3\.0\.3"/.test(cfg) && cfg.indexOf('id="MilanoHome.Launcher"') > 0 && cfg.indexOf('<tizen:service id="MilanoHome.Service">') > 0 && cfg.indexOf('@VERSION@') < 0, 'config.xml: versione, app e servizio');
+  ok(/version="3\.0\.4"/.test(cfg) && cfg.indexOf('id="MilanoHome.Launcher"') > 0 && cfg.indexOf('<tizen:service id="MilanoHome.Service">') > 0 && cfg.indexOf('@VERSION@') < 0, 'config.xml: versione, app e servizio');
   ok(cfg.indexOf('privilege/tv.window') > 0 && cfg.indexOf('reload="disable"') > 0, 'config.xml: privilegio finestra TV (sorgenti, ritorno) e rilancio senza ricarica');
 
   spawn('tv', [path.join(__dirname, 'fake-tv.js'), 'ok']); spawn('net', [path.join(__dirname, 'fake-net.js')]);
@@ -49,7 +49,7 @@ async function main() {
   let p = await waitPing(8000);
   ok(!!p, 'servizio nativo risponde sulla porta 8096', svc.log);
   if (p) {
-    ok(p.native === true && p.v === '3.0.3', 'modalità nativa, versione 3.0.3', { native: p.native, v: p.v });
+    ok(p.native === true && p.v === '3.0.4', 'modalità nativa, versione 3.0.4', { native: p.native, v: p.v });
     ok(p.ref === SHA1 && p.boot && p.boot.source === 'cache', 'core del pacchetto, senza rete', { ref: p.ref, boot: p.boot });
     ok(p.self === 'MilanoHome.Launcher', 'il launcher da riaprire è l\'app nativa', p.self);
   }
@@ -101,26 +101,26 @@ async function main() {
 
   console.log('\n[N5] main avanza: il servizio nativo si aggiorna da solo e resta nativo');
   const over = fs.mkdtempSync(path.join(os.tmpdir(), 'mh-native-over-')); fs.mkdirSync(path.join(over, 'app'));
-  fs.writeFileSync(path.join(over, 'service-core.js'), fs.readFileSync(path.join(ROOT, 'service-core.js'), 'utf8').replace("var VERSION = '3.0.3';", "var VERSION = '3.0.3-next';"));
-  fs.writeFileSync(path.join(over, 'app', 'launcher.html'), fs.readFileSync(path.join(ROOT, 'app', 'launcher.html'), 'utf8').replace("var VERSION='3.0.3';", "var VERSION='3.0.3-next';"));
+  fs.writeFileSync(path.join(over, 'service-core.js'), fs.readFileSync(path.join(ROOT, 'service-core.js'), 'utf8').replace("var VERSION = '3.0.4';", "var VERSION = '3.0.4-next';"));
+  fs.writeFileSync(path.join(over, 'app', 'launcher.html'), fs.readFileSync(path.join(ROOT, 'app', 'launcher.html'), 'utf8').replace("var VERSION='3.0.4';", "var VERSION='3.0.4-next';"));
   await get(NET + '/__ctl?offline=0&sha=' + SHA2 + '&override=' + SHA2 + ':' + over);
   r = await get(SVC + '/update', PAGE);
   ok(r.json && r.json.action === 'updated' && r.json.ref === SHA2, '/update scarica ed esegue il core nuovo', r.json);
   await sleep(1500); p = await waitPing(8000);
-  ok(p && p.v === '3.0.3-next' && p.ref === SHA2 && p.native === true, 'core nuovo sulla porta 8096, ancora nativo', p && { v: p.v, ref: p.ref, native: p.native });
+  ok(p && p.v === '3.0.4-next' && p.ref === SHA2 && p.native === true, 'core nuovo sulla porta 8096, ancora nativo', p && { v: p.v, ref: p.ref, native: p.native });
 
   console.log('\n[N6] riavvio del servizio: resta il core aggiornato (il pacchetto non lo sovrascrive)');
   await get(SVC + '/shutdown'); svc.kill('SIGTERM'); await waitDown(5000);
   await get(NET + '/__ctl?offline=1');
   svc = startSvc(); p = await waitPing(8000);
-  ok(p && p.ref === SHA2 && p.v === '3.0.3-next' && p.boot.source === 'cache', 'core aggiornato dalla cache, senza rete', p && { ref: p.ref, v: p.v, boot: p.boot });
+  ok(p && p.ref === SHA2 && p.v === '3.0.4-next' && p.boot.source === 'cache', 'core aggiornato dalla cache, senza rete', p && { ref: p.ref, v: p.v, boot: p.boot });
   await get(NET + '/__ctl?offline=0&sha=' + SHA1);
   await get(SVC + '/shutdown'); svc.kill('SIGTERM'); await waitDown(5000);
 
   console.log('\n[N7] pacchetto nuovo (stesso servizio, cache di un altro pacchetto): il core incluso sostituisce quello in cache');
   fs.writeFileSync(path.join(data, 'milanohome-seed.txt'), 'pacchetto-precedente');
   await get(NET + '/__ctl?offline=1'); svc = startSvc(); p = await waitPing(8000);
-  ok(p && p.ref === SHA1 && p.v === '3.0.3', 'riparte dal core del pacchetto installato', p && { ref: p.ref, v: p.v });
+  ok(p && p.ref === SHA1 && p.v === '3.0.4', 'riparte dal core del pacchetto installato', p && { ref: p.ref, v: p.v });
   await get(NET + '/__ctl?offline=0&sha=' + SHA1);
 
   /* ---------- launcher del pacchetto in Chromium, da file:// ---------- */
@@ -164,10 +164,10 @@ async function main() {
   await page.evaluate(() => { Array.from(document.querySelectorAll('#sections .card')).filter(c => /HDMI 2/.test(c.textContent))[0].click(); }); await sleep(600); s = await state(page);
   ok(s.tz.src.type === 'HDMI' && s.tz.src.number === 2 && s.tz.launched[0] === 'org.tizen.tv-viewer', 'HDMI 2: sorgente impostata con la finestra TV, poi visore di sistema', { src: s.tz.src, launched: s.tz.launched });
   await page.keyboard.press('ArrowUp'); await sleep(400); s = await state(page);
-  ok(s.menu === 'Milano Home 3.0.3', '↑ apre il menu', s.menu);
+  ok(s.menu === 'Milano Home 3.0.4', '↑ apre il menu', s.menu);
   for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowDown');
   await page.keyboard.press('Enter'); await sleep(1500); s = await state(page);
-  ok(s.debug && s.debug.indexOf('app nativa') > 0 && /servizio: ok v3\.0\.3/.test(s.debug), 'diagnostica: app nativa, servizio ok', s.debug && s.debug.slice(0, 300));
+  ok(s.debug && s.debug.indexOf('app nativa') > 0 && /servizio: ok v3\.0\.4/.test(s.debug), 'diagnostica: app nativa, servizio ok', s.debug && s.debug.slice(0, 300));
   await page.screenshot({ path: path.join(SHOTS, 'n8-nativa-diagnostica.png') });
   await page.keyboard.press('Escape'); await sleep(300);
   await page.screenshot({ path: path.join(SHOTS, 'n8-nativa.png') });
@@ -178,12 +178,12 @@ async function main() {
   await page.close(); page = await open();
   let t0 = Date.now(); s = await state(page);
   while (Date.now() - t0 < 20000 && !(s.cache && s.cache.ref === SHA2)) { await sleep(500); s = await state(page); }
-  ok(s.cache && s.cache.ref === SHA2 && s.cache.html.indexOf("VERSION='3.0.3-next'") > 0, 'launcher nuovo scaricato in cache', s.cache && s.cache.ref);
+  ok(s.cache && s.cache.ref === SHA2 && s.cache.html.indexOf("VERSION='3.0.4-next'") > 0, 'launcher nuovo scaricato in cache', s.cache && s.cache.ref);
   await page.close(); page = await open(); s = await state(page);
   ok(s.source === 'cache' && s.ref === SHA2 && s.native, 'riapertura: launcher nuovo dalla cache', { source: s.source, ref: s.ref });
   ok(!s.base && /wall\d\.jpg/.test(s.wall) && s.wall.indexOf('http') < 0, 'sfondo ancora dal pacchetto', s.wall);
   await page.keyboard.press('ArrowUp'); await sleep(400); s = await state(page);
-  ok(s.menu === 'Milano Home 3.0.3-next', 'versione nuova in uso', s.menu);
+  ok(s.menu === 'Milano Home 3.0.4-next', 'versione nuova in uso', s.menu);
   p = (await get(SVC + '/ping')).json;
   ok(p && p.ref === SHA2 && p.native === true, 'servizio allineato dal launcher e ancora nativo', p && { ref: p.ref, native: p.native });
   ok(errs.length === 0, 'nessun errore di pagina', errs);

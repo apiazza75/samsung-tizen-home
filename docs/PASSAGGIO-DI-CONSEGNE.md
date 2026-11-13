@@ -84,6 +84,11 @@ non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
   non risponde nemmeno dal Mac (8001 e 8002: nessun messaggio in 35 s), quindi l'elenco Smart Hub non si ottiene e gli id
   numerici stanno in una tabella a mano nel servizio. Correzione: il ritorno torna nel servizio (`watchApp` + `inFront`), la
   parte nella pagina è stata tolta. Non si è potuto premere "Indietro" da remoto: l'uscita vera la conferma l'utente.
+- 3.0.4 (13/11): provando la 3.0.3 sulla TV il ritorno non partiva. MISURATO: dal servizio la callback di successo di
+  `tizen.application.launch` non arriva mai anche se l'app si apre; `/launch` restava senza risposta (da qui il toast "Servizio
+  non raggiungibile" dopo 8 s, a app già aperta) e `watchApp` non veniva chiamata. Ora `launchReply` osserva subito e risponde
+  alla callback oppure dopo 1,5 s. Nota: l'API di GitHub ha un limite di 60 richieste l'ora per IP; con molti riavvii in un'ora
+  `/update` risponde 403 e l'aggiornamento aspetta.
 - Prima del 13/11 (sessione cloud): nessuna modifica alla TV. In questa sessione cloud l'esecuzione di `tizen.js` è stata bloccata (codice di terzi)
   e `download.tizen.org` / `developer.samsung.com` non erano raggiungibili: nulla di quel percorso è stato eseguito, solo letto.
 - PR #12 (ramo claude/sweet-babbage-utar0a): questi documenti; in bozza, da completare con l'esito e unire alla fine.
