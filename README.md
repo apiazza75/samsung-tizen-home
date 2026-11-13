@@ -3,6 +3,9 @@
 Launcher pulito per Samsung Smart TV (Tizen), in stile liquid glass: orologio, meteo a 3 giorni (Open-Meteo), fotografie di Milano dall'alto con deriva lenta e dissolvenza, una riga di app preferite e una griglia con tutte le app per categoria.
 Funziona come **modulo di TizenBrew**: nessun certificato, nessuna firma.
 
+Dalla 3.0.0 lo stesso codice può essere installato anche come **app nativa Tizen** (`.wgt`), senza TizenBrew sotto e senza rete
+all'apertura: vedi [docs/APP-NATIVA.md](docs/APP-NATIVA.md).
+
 ## Installazione (una volta sola)
 
 1. Sulla TV apri **TizenBrew → Module Manager (tasto verde) → Aggiungi modulo GitHub** e scrivi solo `apiazza75/samsung-tizen-home`, **senza** il prefisso `gh/`: lo aggiunge TizenBrew da solo (con `gh/` davanti il modulo diventa `gh/gh/…` e compare come "Unknown Module"). Il campo salva appena ne esci.
@@ -50,7 +53,7 @@ Quando esci da un'app aperta dal launcher, il servizio riapre TizenBrew con un *
 
 ## Collaudo
 
-`test/run.sh` esegue tutto: sintassi ES5, servizio nella replica esatta della sandbox di TizenBrew contro una TV finta (REST, WebSocket 8001 e 8002 TLS con token, icone, tasti, tutte le modalità di guasto del canale) e una rete finta (GitHub API, jsDelivr, proxy TizenBrew), launcher in Chromium con Playwright (prima apertura, cache senza rete, aggiornamento di launcher e servizio, telecomando, griglia, diagnostica, nessun errore di console). `MH_NODE=<node 12>` fa girare il servizio con la stessa versione di Node della TV.
+`test/run.sh` esegue tutto: sintassi ES5, servizio nella replica esatta della sandbox di TizenBrew contro una TV finta (REST, WebSocket 8001 e 8002 TLS con token, icone, tasti, tutte le modalità di guasto del canale) e una rete finta (GitHub API, jsDelivr, proxy TizenBrew), launcher in Chromium con Playwright (prima apertura, cache senza rete, aggiornamento di launcher e servizio, telecomando, griglia, diagnostica, nessun errore di console). `MH_NODE=<node 12>` fa girare il servizio con la stessa versione di Node della TV. Il quarto passo (`test/native-tests.js`) collauda l'app nativa: pacchetto assemblato da `tools/build-native.js`, servizio avviato con `onStart`, launcher aperto da `file://`.
 
 ## Vincoli
 

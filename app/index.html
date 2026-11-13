@@ -29,7 +29,7 @@
   function show(html, ref, source) {
     if (shown) return; shown = true; clearTimeout(retryTimer);
     window.MH_REF = ref; window.MH_SOURCE = source; window.MH_CDN = CDN; window.MH_API = API;
-    html = html.replace(/<head>/i, '<head><base href="' + CDN + ref + '/app/">');
+    if (!window.MH_NATIVE) html = html.replace(/<head>/i, '<head><base href="' + CDN + ref + '/app/">');   // app nativa: sfondi e font sono nel pacchetto
     document.open(); document.write(html); document.close();
   }
   function fetchText(url, ms) {
@@ -58,8 +58,9 @@
   document.addEventListener('keydown', function (e) { if (!shown && e.keyCode === 13) { clearTimeout(retryTimer); firstLoad(); } });
   var m = /[?&]ref=([\w.-]+)/.exec(location.search);
   if (m) { fetchLauncher(m[1]).then(function (html) { show(html, m[1], 'rete'); }, function (e) { note('Milano Home · ' + m[1] + ' non scaricabile (' + (e && e.message ? e.message : e) + ')'); }); return; }
-  var cached = readCache();
-  if (cached) show(cached.html, cached.ref, 'cache'); else firstLoad();
+  // app nativa (.wgt): il pacchetto porta con sé una copia del launcher (bundled.js), usata finché la cache non ne ha una scaricata
+  var cached = readCache(), packed = window.MH_BUNDLED && window.MH_BUNDLED.ref && window.MH_BUNDLED.html ? window.MH_BUNDLED : null;
+  if (cached) show(cached.html, cached.ref, 'cache'); else if (packed) show(packed.html, packed.ref, 'pacchetto'); else firstLoad();
 })();
 </script>
 </body>

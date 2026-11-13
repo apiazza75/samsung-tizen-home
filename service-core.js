@@ -5,7 +5,7 @@
    ES5 per Node vecchi. Gli endpoint che agiscono sulla TV accettano solo richieste dalla pagina di TizenBrew. */
 (function () {
   'use strict';
-  var VERSION = '2.1.0';
+  var VERSION = '3.0.0';
   // commit in uso e bootstrap: li passa service.js come argomenti (nella sandbox di TizenBrew `global` non esiste)
   var REF = (function () { try { return (typeof MH_REF !== 'undefined' && MH_REF) || Function('return this')().MH_REF || null; } catch (e) { return null; } })();
   var BOOT = (function () { try { return (typeof MH_BOOT !== 'undefined' && MH_BOOT) || Function('return this')().MH_BOOT || null; } catch (e) { return null; } })();
@@ -14,7 +14,12 @@
   var fs = require('fs');
   var os = require('os');
   var crypto = require('crypto');
-  var PORT = 8095;
+  // app nativa (pacchetto .wgt): il servizio del pacchetto imposta MH_NATIVE = { app: '<id app>' } prima di eseguire il core.
+  // In quel caso: porta propria (convive con il modulo TizenBrew), pagina file:// invece di 127.0.0.1:8081, ritorno al launcher con launch.
+  var NATIVE = (function () { try { return Function('return this')().MH_NATIVE || null; } catch (e) { return null; } })();
+  var PORT = NATIVE ? 8096 : 8095;
+  var BREW_APP = 'xvvl3S1bvH.TizenBrewStandalone';
+  var BREW_CONFIG = process.env.MH_BREW_CONFIG || '/home/owner/share/tizenbrewConfig.json';
   var TV_HOST = process.env.MH_TV_HOST || '127.0.0.1';
   var TV_PORT = +process.env.MH_TV_PORT || 8001;          // API REST e canale ws in chiaro
   var TV_PORT_TLS = +process.env.MH_TV_PORT_TLS || 8002;  // canale wss con token (TV recenti)
@@ -34,7 +39,7 @@
     alloc: function (n) { var b = new Buffer(n); b.fill(0); return b; }
   };
   var sockets = [];
-  var SELF_APP = (function () { try { return tizen.application.getCurrentApplication().appInfo.packageId + '.TizenBrewStandalone'; } catch (e) { return 'xvvl3S1bvH.TizenBrewStandalone'; } })();
+  var SELF_APP = NATIVE ? NATIVE.app : (function () { try { return tizen.application.getCurrentApplication().appInfo.packageId + '.TizenBrewStandalone'; } catch (e) { return 'xvvl3S1bvH.TizenBrewStandalone'; } })();
   function hasTizen() { return !!(typeof tizen !== 'undefined' && tizen && tizen.application); }
   function log(m) { console.log('MilanoHome: ' + m); }
   function mkdir(d) { try { fs.mkdirSync(d); } catch (e) {} }
@@ -71,6 +76,7 @@
       rec.method = 'launch'; rec.error = why || null;
       try { tizen.application.launch(SELF_APP, function () { log('launcher in primo piano (launch)'); }, function (e) { rec.error = 'launch: ' + (e && e.message); log(rec.error); }); } catch (e) { rec.error = 'launch: ' + e.message; log(rec.error); }
     }
+    if (NATIVE) return plain(null);
     try {
       var payload = JSON.stringify({ moduleName: MODULE_NAME, moduleType: MODULE_TYPE, args: '' });
       var ctrl = new tizen.ApplicationControl('http://tizen.org/appcontrol/operation/default', null, null, null, [new tizen.ApplicationControlData('module', [payload])]);
@@ -101,8 +107,34 @@
   function dec(x) { try { return decodeURIComponent(x); } catch (e) { return ''; } }
   function qs(url) { var o = {}, i = url.indexOf('?'); if (i < 0) return o;
     url.slice(i + 1).split('&').forEach(function (p) { var kv = p.split('='); o[dec(kv[0])] = dec((kv[1] || '').replace(/\+/g, ' ')); }); return o; }
+  // moduli di TizenBrew (app nativa): l'elenco sta nel file di configurazione di TizenBrew; si aprono con lo stesso app control
+  // {moduleName, moduleType} con cui TizenBrew permette ad altre app di lanciare un modulo. Senza nome: apre TizenBrew e basta.
+  function brewModules() {
+    var out = [];
+    try { (JSON.parse(fs.readFileSync(BREW_CONFIG, 'utf8')).modules || []).forEach(function (full) {
+      full = String(full); var i = full.indexOf('/'); if (i < 1) return;
+      var name = full.slice(i + 1), short = name.replace(/^@[^/]+\//, '').replace(/^[^/]+\//, '');
+      out.push({ fullName: full, name: name, moduleType: full.slice(0, i), appName: short.charAt(0).toUpperCase() + short.slice(1) });
+    }); } catch (e) {}
+    return out;
+  }
+  function openBrew(full, cb) {
+    if (!hasTizen()) return cb('no tizen');
+    function plain(why) { try { tizen.application.launch(BREW_APP, function () { cb(null, why ? 'launch (' + why + ')' : 'launch'); }, function (e) { cb('TizenBrew: ' + (e && e.message ? e.message : 'non si apre')); }); } catch (e) { cb('TizenBrew: ' + e.message); } }
+    var i = full ? full.indexOf('/') : -1;
+    if (i < 1) return plain(null);
+    try {
+      var payload = JSON.stringify({ moduleName: full.slice(i + 1), moduleType: full.slice(0, i), args: '' });
+      var ctrl = new tizen.ApplicationControl('http://tizen.org/appcontrol/operation/default', null, null, null, [new tizen.ApplicationControlData('module', [payload])]);
+      tizen.application.launchAppControl(ctrl, BREW_APP, function () { cb(null, 'appcontrol'); }, function (e) { plain('appcontrol: ' + (e && e.message)); });
+    } catch (e) { plain('appcontrol: ' + e.message); }
+  }
+  // Pagina del launcher. Sotto TizenBrew: origine 127.0.0.1:8081. App nativa: la pagina è un file del pacchetto e manda l'intestazione
+  // X-MH (una pagina web qualsiasi non può aggiungerla senza una preflight, che qui viene rifiutata alle origini http/https).
+  function webOrigin(o) { return /^https?:/i.test(o || ''); }
   function fromPage(req) {
     var o = req.headers.origin || '', r = req.headers.referer || '';
+    if (NATIVE) return req.headers['x-mh'] === '1' && !webOrigin(o) && !webOrigin(r);
     if (o) return o === PAGE_ORIGIN;
     if (r) return r.indexOf(PAGE_ORIGIN + '/') === 0;
     return false;
@@ -376,9 +408,10 @@
   /* --- server HTTP locale --- */
   var server = http.createServer(function (req, res) {
     var url = req.url || '/', q = qs(url), path = url.split('?')[0];
+    if (req.method === 'OPTIONS' && NATIVE && webOrigin(req.headers.origin)) { res.writeHead(403); return res.end(); }
     if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' }); return res.end(); }
     if (path === '/ping') { var dir = hubDirList();
-      return json(res, 200, { ok: true, tizen: hasTizen(), node: process.version, v: VERSION, ref: REF, self: SELF_APP, watching: watch ? watch.id : null, lan: lanIp(), lastReturn: lastReturn,
+      return json(res, 200, { ok: true, tizen: hasTizen(), node: process.version, v: VERSION, ref: REF, native: !!NATIVE, self: SELF_APP, watching: watch ? watch.id : null, lan: lanIp(), lastReturn: lastReturn,
         boot: BOOT ? BOOT.info() : null,
         hub: { apps: hub.apps ? hub.apps.length : null, error: hub.error, dir: dir ? dir.length : null, dirError: hub.dirError, chan: loadState().chan || null, channelError: lastChanError, bad: Object.keys(badCombos), attempts: attempts.slice(-10) } }); }
     if (path === '/apps') return listApps(function (err, apps) {
@@ -426,6 +459,8 @@
     }
     if (path === '/key') { var k = (q.key || '').replace(/[^A-Z0-9_]/g, ''); if (!k) return json(res, 400, { error: 'key?' });
       return sendRemoteKey(k, function (err) { if (err) return json(res, 500, { error: String(err) }); json(res, 200, { ok: true }); }); }
+    if (path === '/modules') return json(res, 200, { modules: brewModules() });
+    if (path === '/module') return openBrew(q.name || '', function (err, how) { if (err) return json(res, 500, { error: String(err) }); json(res, 200, { ok: true, method: how }); });
     if (path === '/hubreset') { hub.apps = null; hub.at = 0; hub.error = null; hub.failAt = 0; attempts = []; badCombos = {}; var st = loadState(); delete st.chan; saveState(st); if (chan) chan.close();
       return hubList(function (err, list) { json(res, 200, { error: err ? String(err) : null, apps: list ? list.length : null, attempts: attempts }); }); }
     json(res, 404, { error: 'not found' });

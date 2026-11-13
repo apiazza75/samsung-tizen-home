@@ -143,8 +143,9 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 <script>
 (function(){
   var $=function(id){return document.getElementById(id)};
-  var VERSION='2.1.0';
-  var isTV=location.protocol!=='file:'&&location.hostname==='127.0.0.1'; // caricato da TizenBrew
+  var VERSION='3.0.0';
+  var NATIVE=window.MH_NATIVE||null; // app nativa Tizen (pacchetto .wgt): nessun TizenBrew sotto, servizio proprio sulla porta 8096
+  var isTV=!!NATIVE||(location.protocol!=='file:'&&location.hostname==='127.0.0.1'); // nativa, oppure caricato da TizenBrew
   var REPO='apiazza75/samsung-tizen-home';
   var CDN=window.MH_CDN||'https://cdn.jsdelivr.net/gh/'+REPO+'@', API=window.MH_API||'https://api.github.com/repos/'+REPO+'/commits/main';
   var ICONS=window.MH_ICONS||{};
@@ -163,7 +164,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
   tick();
 
   /* ---------- sfondi: dal commit in uso (jsDelivr), altrimenti dalla cache su disco del servizio; deriva lenta e dissolvenza ---------- */
-  var SVC='http://127.0.0.1:8095',svcOk=false,dbg={};
+  var SVC='http://127.0.0.1:'+(NATIVE?8096:8095),svcOk=false,dbg={};
   var WALLS=[['wall1.jpg','Duomo e Castello dall\'alto · Gianluca, Pexels'],['wall2.jpg','Castello Sforzesco · Mikhail Nilov, Pexels'],
              ['wall3.jpg','Guglie del Duomo all\'ora blu · A. Buchinskaia, Unsplash'],['wall4.jpg','Duomo al tramonto · Mahya Jahangir, Unsplash']];
   var A=$('wallA'),B=$('wallB'),front=A,wi=0,kbs=['kb1','kb2','kb3','kb4'],kbi=0,wallSrc={};
@@ -236,14 +237,14 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 
   /* --- servizio locale (service-core.js) --- */
   function fetchJson(u,ms){return new Promise(function(res,rej){var t=setTimeout(function(){rej(new Error('timeout'))},ms||3000);
-    fetch(u).then(function(r){return r.json()}).then(function(j){clearTimeout(t);res(j)}).catch(function(e){clearTimeout(t);rej(e)});});}
+    fetch(u,NATIVE?{headers:{'X-MH':'1'}}:undefined).then(function(r){return r.json()}).then(function(j){clearTimeout(t);res(j)}).catch(function(e){clearTimeout(t);rej(e)});});}
   function ping(){return fetchJson(SVC+'/ping',1500).then(function(j){svcOk=true;dbg.svc=j;return true;}).catch(function(){return false});}
   function waitService(tries){return ping().then(function(ok){if(ok||tries<=0)return ok;return new Promise(function(r){setTimeout(function(){r(waitService(tries-1))},700)});});}
-  function ensureService(){return svcOk?Promise.resolve(true):ping();}
+  function ensureService(){if(svcOk)return Promise.resolve(true);return ping().then(function(ok){if(ok||!NATIVE)return ok;try{NATIVE.startService();}catch(e){}return waitService(8);});}
   function loadApps(){return waitService(8).then(function(ok){if(!ok)return null;
     return fetchJson(SVC+'/apps',12000).then(function(j){if(j.error){dbg.appsErr=j.error;return null}dbg.hub=j.hub;dbg.hubDir=j.hubDir;dbg.hubErr=j.hubError;return j.apps||[]}).catch(function(e){dbg.appsErr=String(e);return null});});}
   function sysIconUrl(a){if(a.hub)return SVC+'/hubicon?id='+encodeURIComponent(a.hub);if(a.iconOk===true&&a.iconPath)return SVC+'/icon?path='+encodeURIComponent(a.iconPath);return null;}
-  function noService(){toast('Servizio non attivo: riapri Milano Home da TizenBrew',4000);}
+  function noService(){toast(NATIVE?'Servizio non attivo: chiudi e riapri Milano Home':'Servizio non attivo: riapri Milano Home da TizenBrew',4000);}
   function launchApp(id,name){ensureService().then(function(ok){if(!ok)return noService();
     fetchJson(SVC+'/launch?id='+encodeURIComponent(id)+'&back='+(prefs.back===false?0:1),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+name+': '+j.error,3000)}).catch(function(){toast('Servizio non raggiungibile',3000)});});}
   function sendKey(key,okMsg){ensureService().then(function(ok){if(!ok)return noService();
@@ -263,16 +264,19 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     ws.onerror=ws.onclose=function(){var w=wsWaiters;wsWaiters=[];w.forEach(function(cb){cb(false)});ws=null;};}
   function withWs(cb){if(ws&&ws.readyState===1)return cb(true);wsWaiters.push(cb);if(!ws||ws.readyState>1)openWs();
     setTimeout(function(){var i=wsWaiters.indexOf(cb);if(i>=0){wsWaiters.splice(i,1);cb(false);}},4000);}
-  function loadModules(){return new Promise(function(res){if(!isTV)return res(null);
+  function loadModules(){if(NATIVE)return waitService(8).then(function(ok){if(!ok)return null;return fetchJson(SVC+'/modules',4000).then(function(j){dbg.modsOk=true;modules=j.modules||[];return modules;}).catch(function(){return null});});
+    return new Promise(function(res){if(!isTV)return res(null);
     modulesRes=res;withWs(function(ok){if(!ok){if(modulesRes){modulesRes=null;res(null);}return;}ws.send(JSON.stringify({type:4,payload:false}));
       setTimeout(function(){if(modulesRes){modulesRes=null;res(null);}},4000);});});}
-  function launchModule(m){withWs(function(ok){if(!ok){toast('TizenBrew non risponde: riapri Milano Home',4000);return;}
+  function launchModule(m){if(NATIVE){ensureService().then(function(ok){if(!ok)return noService();fetchJson(SVC+'/module?name='+encodeURIComponent(m.fullName),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+(m.appName||m.name)+': '+j.error,4000)}).catch(function(){toast('Servizio non raggiungibile',3000)});});return;}
+    withWs(function(ok){if(!ok){toast('TizenBrew non risponde: riapri Milano Home',4000);return;}
     ws.send(JSON.stringify({type:5,payload:m}));
     if(m.evaluateScriptOnDocumentStart){pendingNav=m;setTimeout(function(){if(pendingNav===m){pendingNav=null;location.href=m.appPath;}},5000);}
     else setTimeout(function(){location.href=m.appPath;},150);});}
   /* TizenBrew: la sua pagina è quella da cui è partito il launcher, quindi basta tornare indietro nella cronologia.
      Prima chiedo al servizio di rileggere i moduli (GetModules con reload), così l'elenco che si trova è aggiornato. */
-  function goTizenBrew(){toast('Torno a TizenBrew…',2500);
+  function goTizenBrew(){if(NATIVE){toast('Apro TizenBrew…',2500);ensureService().then(function(ok){if(!ok)return noService();fetchJson(SVC+'/module',8000).then(function(j){if(j.error)toast('TizenBrew non si apre: '+j.error,4000)}).catch(function(){toast('Servizio non raggiungibile',3000)});});return;}
+    toast('Torno a TizenBrew…',2500);
     var go=function(){if(history.length>1)history.back();else toast('Pagina di TizenBrew non in cronologia: premi Home e riapri TizenBrew',5000);};
     withWs(function(ok){if(ok){try{ws.send(JSON.stringify({type:4,payload:true}));}catch(e){}}setTimeout(go,ok?300:0);});}
 
@@ -461,7 +465,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     d.textContent='MILANO HOME '+VERSION+' · diagnostica · leggo lo stato del servizio…';d.classList.add('show');
     ping().then(function(){if(d.classList.contains('show'))drawDebug();});}
   function drawDebug(){var d=$('debug');var s=dbg.svc||{},hub=s.hub||{},lc=readLauncherCache();
-    var lines=['MILANO HOME '+VERSION+' · commit '+(window.MH_REF?String(window.MH_REF).slice(0,7):'locale')+' da '+(window.MH_SOURCE||'file')+' · diagnostica  (↑ ↓ scorri · Indietro chiude)',
+    var lines=['MILANO HOME '+VERSION+' · commit '+(window.MH_REF?String(window.MH_REF).slice(0,7):'locale')+' da '+(window.MH_SOURCE||'file')+(NATIVE?' · app nativa':'')+' · diagnostica  (↑ ↓ scorri · Indietro chiude)',
       'aggiornamento: '+upd.state+(upd.svc?' · servizio: '+upd.svc:'')+' · cache launcher: '+(lc?lc.ref.slice(0,7):'assente'),
       'servizio: '+(svcOk?'ok v'+s.v+' commit '+(s.ref?String(s.ref).slice(0,7):'?')+' node '+s.node+(s.boot?' · avviato da '+s.boot.source+(s.boot.lastError?' · '+s.boot.lastError:''):' · bootstrap 1.x'):'assente')+'  ·  moduli: '+(dbg.modsOk?modules.map(function(m){return m.name}).join(', '):'non ricevuti')+'  ·  app: '+allApps.length+(dbg.appsErr?'  ·  errore: '+dbg.appsErr:'')+'  ·  in cache: '+(cached&&cached.apps?cached.apps.length:0),
       'Smart Hub: '+(dbg.hub!==undefined&&dbg.hub!==null?dbg.hub+' app dal canale':'canale non disponibile')+(dbg.hubErr?' ('+dbg.hubErr+')':'')+' · cartella icone: '+(hub.dir!==undefined&&hub.dir!==null?hub.dir+' app':'non leggibile'+(hub.dirError?' ('+hub.dirError+')':''))+' · abbinate: '+allApps.filter(function(a){return a.hub}).length+' · IP TV: '+(s.lan||'?')+(hub.chan?' · canale ok su '+hub.chan.host+(hub.chan.tls?':8002':':8001')+' '+(hub.chan.api||'v2'):'')+(hub.bad&&hub.bad.length?' · scartati: '+hub.bad.join(', '):''),
