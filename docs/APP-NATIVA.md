@@ -103,7 +103,7 @@ Dalla TV stessa il canale telecomando Samsung non risponde (misurato sulla QN90A
   privilegio `http://tizen.org/privilege/tv.window`.
 - **Ritorno** (dalla 3.0.3, nel servizio): dopo aver aperto un'app il servizio chiede ogni 2 s a `/api/v2/applications/<id>` se è
   ancora `visible`; quando non lo è più rilancia Milano Home. L'API dice il vero solo con l'id Smart Hub numerico (tabella `HUB_IDS`
-  in `service-core.js`: Netflix, Prime Video, YouTube, Disney+, DAZN, Spotify, RaiPlay); con l'id Tizen risponde sempre `false`.
+  in `service-core.js`: Netflix, Prime Video, YouTube, Disney+, DAZN, Spotify, RaiPlay, Crunchyroll); con l'id Tizen risponde sempre `false`.
   Per le app fuori tabella il servizio guarda se l'app è ancora tra i contesti in esecuzione: funziona per quelle che si chiudono
   all'uscita, non per quelle che restano sospese. La pagina non può farlo: la TV la sospende circa 20 s dopo che è finita dietro
   un'altra app (la 3.0.2 ci provava osservando `tizen.tvwindow`, e sulla sorgente TV il segnale usato non cambia mai).

@@ -89,6 +89,12 @@ non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
   non raggiungibile" dopo 8 s, a app già aperta) e `watchApp` non veniva chiamata. Ora `launchReply` osserva subito e risponde
   alla callback oppure dopo 1,5 s. Nota: l'API di GitHub ha un limite di 60 richieste l'ora per IP; con molti riavvii in un'ora
   `/update` risponde 403 e l'aggiornamento aspetta.
+- 13/11, dopo la 3.0.4. PROVATO sulla TV: Netflix aperta dal servizio, 60 s, poi visore TV in primo piano → Milano Home torna in
+  2 s (via `visible`). Mediaset Infinity (fuori tabella) aperta, 50 s, chiusa con `0 kill` → Milano Home torna in 2 s (via
+  contesti). L'utente usa soprattutto Mediaset Infinity (`g3zzYA7yO8.InfinityNew`), NOW (`jcz0WrZYdy.NOWTV`) e Crunchyroll.
+  Crunchyroll aggiunta in tabella (`3202302030097`, nome e versione confermati dall'API della TV). Per Mediaset Infinity e NOW
+  l'id Smart Hub non si trova negli elenchi pubblici (i due di "NOW TV" danno 404): contano sul fatto che l'uscita le chiuda.
+  Da confermare col telecomando; se restano sospese serve il loro id numerico.
 - Prima del 13/11 (sessione cloud): nessuna modifica alla TV. In questa sessione cloud l'esecuzione di `tizen.js` è stata bloccata (codice di terzi)
   e `download.tizen.org` / `developer.samsung.com` non erano raggiungibili: nulla di quel percorso è stato eseguito, solo letto.
 - PR #12 (ramo claude/sweet-babbage-utar0a): questi documenti; in bozza, da completare con l'esito e unire alla fine.
