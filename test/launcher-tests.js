@@ -31,7 +31,7 @@ async function state(page) { return page.evaluate(() => ({ ref: window.MH_REF, s
   items: Array.from(document.querySelectorAll('#row .item')).map(e => ({ name: e.querySelector('.nm').textContent, focus: e.classList.contains('is-focus'), svg: !!e.querySelector('.ico svg'), img: !!e.querySelector('.ico img'), txt: !!e.querySelector('.ico .txt') })),
   gridOpen: document.getElementById('all').classList.contains('show'), sections: Array.from(document.querySelectorAll('#sections .sec')).map(s => ({ title: s.querySelector('.sh').textContent.trim(), n: s.querySelectorAll('.card').length, focus: Array.from(s.querySelectorAll('.card')).findIndex(c => c.classList.contains('is-focus')) })),
   menu: document.getElementById('panel').classList.contains('show') ? document.getElementById('ptitle').textContent : null, debug: document.getElementById('debug').classList.contains('show') ? document.getElementById('debug').textContent : null,
-  wall: (document.querySelector('.wall.on') || {}).style ? document.querySelector('.wall.on').style.backgroundImage : '', tint: !!document.querySelector('.tint.on'), toast: document.getElementById('toast').textContent })); }
+  wall: (document.querySelector('.wall.on') || {}).style ? document.querySelector('.wall.on').style.backgroundImage : '', tint: /^data:image\/png/.test((document.querySelector('img.tint.on') || {}).src || ''), toast: document.getElementById('toast').textContent })); }
 
 async function main() {
   spawn('tv', [path.join(__dirname, 'fake-tv.js'), 'ok']); spawn('net', [path.join(__dirname, 'fake-net.js')]);
@@ -54,7 +54,7 @@ async function main() {
   ok(s.items.every(i => i.svg) && s.items.some(i => i.name === 'YouTube') && s.items.some(i => i.name === 'Netflix'), 'tutte le tile della riga con icona nostra (YouTube da TizenTube, Netflix…)', s.items);
   ok(s.items.filter(i => i.focus).length === 1, 'una tile a fuoco');
   ok(/wall1\.jpg/.test(s.wall) && s.wall.indexOf('/asset') < 0, 'sfondo dal commit (jsDelivr)', s.wall);
-  ok(s.tint, 'tinta dello sfondo attiva');
+  ok(s.tint, 'tinta dello sfondo attiva (immagine piccola, non gradiente a tutto schermo)');
   await page.screenshot({ path: path.join(SHOTS, 'p1-home.png') });
   await key(page, 'ArrowRight'); await sleep(400); s = await state(page); ok(s.items[1].focus, '→ sposta il fuoco');
   await key(page, 'ArrowDown'); await sleep(700); s = await state(page);
@@ -74,11 +74,11 @@ async function main() {
   for (let i = 0; i < 8; i++) await key(page, 'ArrowUp'); await sleep(500); s = await state(page); ok(!s.gridOpen, '↑ oltre la prima sezione chiude la griglia');
   await key(page, 'ArrowDown'); await sleep(500);
   await key(page, 'Escape'); await sleep(600); s = await state(page); ok(!s.gridOpen, 'Indietro chiude la griglia');
-  await key(page, 'ArrowUp'); await sleep(400); s = await state(page); ok(s.menu === 'Milano Home 3.0.1', '↑ apre il menu', s.menu);
+  await key(page, 'ArrowUp'); await sleep(400); s = await state(page); ok(s.menu === 'Milano Home 3.0.2', '↑ apre il menu', s.menu);
   await page.screenshot({ path: path.join(SHOTS, 'p1-menu.png') });
   for (let i = 0; i < 6; i++) await key(page, 'ArrowDown');
   await key(page, 'Enter'); await sleep(800); s = await state(page);
-  ok(s.debug && /commit 1111111 da rete/.test(s.debug) && /servizio: ok v3\.0\.1 commit 1111111/.test(s.debug) && /Smart Hub: 6 app dal canale/.test(s.debug) && /canale ok su 127\.0\.0\.2:8002/.test(s.debug), 'Diagnostica: commit, servizio, Smart Hub, canale', s.debug && s.debug.slice(0, 600));
+  ok(s.debug && /commit 1111111 da rete/.test(s.debug) && /servizio: ok v3\.0\.2 commit 1111111/.test(s.debug) && /Smart Hub: 6 app dal canale/.test(s.debug) && /canale ok su 127\.0\.0\.2:8002/.test(s.debug), 'Diagnostica: commit, servizio, Smart Hub, canale', s.debug && s.debug.slice(0, 600));
   await page.screenshot({ path: path.join(SHOTS, 'p1-diag.png') });
   await key(page, 'Escape'); await sleep(6000); // il controllo aggiornamenti parte dopo 4 s
   await key(page, 'ArrowUp'); for (let i = 0; i < 6; i++) await key(page, 'ArrowDown'); await key(page, 'Enter'); await sleep(800); s = await state(page);
@@ -103,7 +103,7 @@ async function main() {
 
   console.log('\n[P3] main avanza: il launcher scarica il nuovo (per la prossima apertura) e aggiorna subito il servizio');
   const over = fs.mkdtempSync(path.join(os.tmpdir(), 'mh-over-')); fs.mkdirSync(path.join(over, 'app'));
-  fs.writeFileSync(path.join(over, 'app', 'launcher.html'), fs.readFileSync(path.join(ROOT, 'app', 'launcher.html'), 'utf8').replace("var VERSION='3.0.1';", "var VERSION='2.0.0-next';"));
+  fs.writeFileSync(path.join(over, 'app', 'launcher.html'), fs.readFileSync(path.join(ROOT, 'app', 'launcher.html'), 'utf8').replace("var VERSION='3.0.2';", "var VERSION='2.0.0-next';"));
   await get(NET + '/__ctl?offline=0&sha=' + SHA2 + '&override=' + encodeURIComponent(SHA2 + ':' + over));
   page = await openLauncher(ctx, errs); s = await state(page);
   ok(s.ref === SHA1 && s.source === 'cache', 'apertura ancora dalla cache vecchia');

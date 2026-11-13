@@ -11,6 +11,9 @@
 :root{--bg:#05070e;--fg:#f4f6fb;--fg-dim:rgba(244,246,251,.62);--glass:rgba(255,255,255,.09);--glass-strong:rgba(255,255,255,.17);--glass-edge:rgba(255,255,255,.28);--focus:rgba(255,255,255,.95)}
 html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:"Figtree","Samsung One",sans-serif;overflow:hidden;cursor:none}
 *{box-sizing:border-box}
+/* Sulla TV (Chromium 76) il disegno è software: ogni livello che cambia forma viene ridisegnato per intero, e un gradiente a tutto
+   schermo costa circa 1 s. Per questo gli elementi che si animano hanno un livello proprio fisso (will-change) e la selezione cambia
+   solo trasformazioni e opacità, che il compositore gestisce senza ridisegnare. Misurato sulla QN90A con una traccia di prestazioni. */
 .stage{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;background:var(--bg)}
 .wall{position:absolute;top:-5%;left:-5%;right:-5%;bottom:-5%;background-size:cover;background-position:center;opacity:0;transition:opacity 2.5s ease;will-change:transform,opacity}
 .wall.on{opacity:1}
@@ -20,11 +23,11 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 @keyframes kb3{from{transform:scale(1.04) translate(2%,-1.2%)}to{transform:scale(1.12) translate(-2%,1.2%)}}
 @keyframes kb4{from{transform:scale(1.12) translate(-2%,-1.2%)}to{transform:scale(1.03) translate(2%,1.2%)}}
 .stage.dim .wall{opacity:.35}
-.hdr,.wx,.dock,.hint,.credit{transition:opacity .3s ease}
+.hdr,.wx,.dock,.hint,.credit{transition:opacity .3s ease;will-change:opacity}
 .stage.dim .hdr,.stage.dim .wx,.stage.dim .dock,.stage.dim .hint,.stage.dim .credit{opacity:0}
-.tint{position:absolute;top:0;left:0;right:0;bottom:0;opacity:0;transition:opacity .6s ease;pointer-events:none}
+.tint{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;transition:opacity .6s ease;pointer-events:none;will-change:opacity}
 .tint.on{opacity:1}
-.vignette{position:absolute;top:0;left:0;right:0;bottom:0;background:
+.vignette{position:absolute;top:0;left:0;right:0;bottom:0;will-change:transform;background:
   radial-gradient(ellipse 120% 90% at 50% 45%,transparent 50%,rgba(3,5,12,.5) 100%),
   linear-gradient(to bottom,rgba(3,5,12,.25),transparent 25%,transparent 52%,rgba(3,5,12,.8))}
 .credit{position:absolute;left:3vw;bottom:1.6vh;font-size:.75vw;color:rgba(244,246,251,.35);letter-spacing:.08em;text-transform:uppercase}
@@ -55,26 +58,29 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 .row{display:flex;transition:transform .22s ease-out;will-change:transform}
 .item{flex:none;width:8.4vw;margin-right:1.7vw;text-align:center}
 .ico{position:relative;width:8.4vw;height:8.4vw;border-radius:22%;overflow:hidden;background:linear-gradient(150deg,#7c8cb4,#2d3650);
-  box-shadow:0 12px 28px rgba(0,0,0,.5);transition:transform .16s ease-out,box-shadow .16s ease-out;will-change:transform}
+  box-shadow:0 12px 28px rgba(0,0,0,.5);transition:transform .16s ease-out;will-change:transform}
+/* anello della selezione su un livello suo: accenderlo non ridisegna l'icona né la sua ombra sfumata */
+.ico:before{content:"";position:absolute;left:0;top:0;right:0;bottom:0;z-index:1;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 .22vw var(--focus);opacity:0;will-change:opacity}
 .ico:after{content:"";position:absolute;left:0;top:0;right:0;bottom:0;border-radius:inherit;pointer-events:none;background:radial-gradient(ellipse 110% 70% at 25% 0%,rgba(255,255,255,.2),transparent 60%)}
 .ico svg{position:absolute;left:0;top:0;width:100%;height:100%}
 .ico img{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover}
 .ico .num{position:absolute;right:9%;bottom:6%;font-size:1.7vw;font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .ico .txt{position:absolute;left:8%;right:8%;top:50%;transform:translateY(-50%);font-size:1.15vw;font-weight:600;line-height:1.15;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.5);word-wrap:break-word}
-.item .nm{margin-top:.8vw;font-size:1.05vw;font-weight:500;color:var(--fg-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .16s;text-shadow:0 1px 8px rgba(0,0,0,.7)}
+.item .nm{margin-top:.8vw;font-size:1.05vw;font-weight:500;color:var(--fg-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 8px rgba(0,0,0,.7)}
 .item{position:relative}
-.item .sub{position:absolute;left:50%;width:16vw;margin-left:-8vw;top:100%;margin-top:.15vw;font-size:.85vw;color:rgba(244,246,251,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .25s}
+.item .sub{position:absolute;left:50%;width:16vw;margin-left:-8vw;top:100%;margin-top:.15vw;font-size:.85vw;color:rgba(244,246,251,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0}
 .item.is-focus .sub{opacity:1}
-.item.is-focus .ico{transform:translateY(-6%) scale(1.16);box-shadow:0 0 0 .22vw var(--focus),0 20px 44px rgba(0,0,0,.6)}
+.item.is-focus .ico{transform:translateY(-6%) scale(1.16)}
+.item.is-focus .ico:before{opacity:1}
 .item.is-focus .nm{color:var(--fg);font-weight:600}
 .item.is-pressed .ico{transform:translateY(-2%) scale(1.06)}
 .hint{position:absolute;left:0;right:0;bottom:3.2vh;text-align:center;font-size:.9vw;color:rgba(244,246,251,.45);letter-spacing:.08em;text-transform:uppercase;transition:opacity 1s}
 .hint.fade{opacity:0}
 .toast{position:fixed;left:50%;top:14%;transform:translate(-50%,-10px);opacity:0;pointer-events:none;padding:.8vw 1.4vw;border-radius:1.2vw;
-  background:rgba(10,14,26,.9);box-shadow:inset 0 1px 0 var(--glass-edge),0 16px 40px rgba(0,0,0,.45);font-size:1.15vw;transition:opacity .2s,transform .2s;z-index:30;max-width:60vw;text-align:center}
+  background:rgba(10,14,26,.9);box-shadow:inset 0 1px 0 var(--glass-edge),0 16px 40px rgba(0,0,0,.45);font-size:1.15vw;transition:opacity .2s,transform .2s;will-change:opacity,transform;z-index:30;max-width:60vw;text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 /* tutte le app */
-.all{position:fixed;top:0;left:0;right:0;bottom:0;z-index:12;opacity:0;visibility:hidden;transition:opacity .4s ease,visibility 0s linear .4s}
+.all{position:fixed;top:0;left:0;right:0;bottom:0;z-index:12;opacity:0;visibility:hidden;transition:opacity .4s ease,visibility 0s linear .4s;will-change:opacity}
 .all.show{opacity:1;visibility:visible;transition:opacity .4s ease}
 .all .shade{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(5,7,14,.55)}
 .all .mini{position:absolute;left:5vw;top:3.6vh;display:flex;align-items:baseline;text-shadow:0 2px 16px rgba(0,0,0,.7)}
@@ -88,8 +94,9 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 .sec .sh span{color:rgba(244,246,251,.4);font-weight:500;margin-left:.6em;font-size:.85em}
 .cards{display:flex;flex-wrap:wrap}
 .card{flex:none;display:flex;align-items:center;width:16.8vw;height:6.6vw;margin:0 1vw 1vw 0;padding:.6vw;border-radius:1.2vw;background:rgba(255,255,255,.1);
-  box-shadow:inset 0 1px 0 var(--glass-edge);transition:transform .16s ease-out,background .16s,box-shadow .16s}
-.card .ico{width:5.2vw;height:5.2vw;flex:none;box-shadow:none}
+  box-shadow:inset 0 1px 0 var(--glass-edge)}
+.card .ico{width:5.2vw;height:5.2vw;flex:none;box-shadow:none;will-change:auto}
+.card .ico:before{display:none}
 .card .ico .txt{font-size:.8vw}
 .card .ico .num{font-size:1.1vw}
 .card .tx{margin-left:1vw;overflow:hidden}
@@ -97,7 +104,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 .card .sub{font-size:.9vw;color:var(--fg-dim);margin-top:.2vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card.is-focus{background:var(--glass-strong);transform:scale(1.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 .2vw var(--focus);z-index:2}
 /* menu e diagnostica */
-.panel{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(3,5,12,.55);opacity:0;visibility:hidden;transition:opacity .25s,visibility 0s linear .25s;z-index:20}
+.panel{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(3,5,12,.55);opacity:0;visibility:hidden;transition:opacity .25s,visibility 0s linear .25s;will-change:opacity;z-index:20}
 .panel.show{opacity:1;visibility:visible;transition:opacity .25s}
 .panel .inner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:60vw;max-height:84vh;display:flex;flex-direction:column;padding:2vw 2.4vw;border-radius:1.8vw;
   background:rgba(14,18,32,.94);box-shadow:inset 0 1px 0 var(--glass-edge),0 30px 80px rgba(0,0,0,.6)}
@@ -122,7 +129,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 <body>
 <div class="stage" id="stage">
   <div class="wall" id="wallA"></div><div class="wall" id="wallB"></div>
-  <div class="tint" id="tintA"></div><div class="tint" id="tintB"></div>
+  <img class="tint" id="tintA" alt=""><img class="tint" id="tintB" alt="">
   <div class="vignette"></div>
   <div class="credit" id="credit"></div>
   <div class="hdr"><div class="greet" id="greet"></div><div class="clock" id="clock">--:--</div><div class="date" id="date"></div></div>
@@ -143,7 +150,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 <script>
 (function(){
   var $=function(id){return document.getElementById(id)};
-  var VERSION='3.0.1';
+  var VERSION='3.0.2';
   var NATIVE=window.MH_NATIVE||null; // app nativa Tizen (pacchetto .wgt): nessun TizenBrew sotto, servizio proprio sulla porta 8096
   var isTV=!!NATIVE||(location.protocol!=='file:'&&location.hostname==='127.0.0.1'); // nativa, oppure caricato da TizenBrew
   var REPO='apiazza75/samsung-tizen-home';
@@ -173,11 +180,17 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     img.onload=function(){wallSrc[i]=img.src;cb(img.src)};img.onerror=function(){if(second)return cb(null);second=true;img.src=wallUrl(i,true)};img.src=wallUrl(i,false);}
   function showWall(i){loadWall(i,function(src){if(!src){dbg.wallErr=WALLS[i][0];return;}var next=front===A?B:A;next.style.backgroundImage='url("'+src+'")';next.className='wall on '+kbs[kbi++%4];front.className='wall';front=next;$('credit').textContent='Foto: '+WALLS[i][1];});}
   showWall(0);setInterval(function(){wi=(wi+1)%WALLS.length;showWall(wi);},75000);
-  /* tinta dello sfondo con il colore dell'app selezionata (due strati in dissolvenza) */
-  var TA=$('tintA'),TB=$('tintB'),tintFront=TA,lastTint=null;
+  /* tinta dello sfondo con il colore dell'app selezionata (due strati in dissolvenza). Il gradiente è disegnato su un canvas piccolo
+     e mostrato come immagine: la ingrandisce il compositore, senza ridisegnare lo schermo a ogni spostamento. */
+  var TA=$('tintA'),TB=$('tintB'),tintFront=TA,lastTint=null,tintUrl={},tintCv=null;
+  function tintImg(hex){if(tintUrl[hex])return tintUrl[hex];var c=hexToRgba(hex,.62),c2=hexToRgba(hex,.26),c0=hexToRgba(hex,0);if(!c)return null;
+    var W=192,H=108,x,g;if(!tintCv){tintCv=document.createElement('canvas');tintCv.width=W;tintCv.height=H;}x=tintCv.getContext('2d');x.clearRect(0,0,W,H);
+    g=x.createLinearGradient(0,H,0,H*.55);g.addColorStop(0,c2);g.addColorStop(1,c0);x.fillStyle=g;x.fillRect(0,0,W,H);
+    x.save();x.translate(W*.5,H*1.05);x.scale(W*.6,H*.55);g=x.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,c);g.addColorStop(.7,c0);x.fillStyle=g;x.fillRect(-1,-1,2,2);x.restore();
+    return tintUrl[hex]=tintCv.toDataURL();}
   function hexToRgba(h,a){var m=/^#?([0-9a-f]{6})$/i.exec(h||'');if(!m)return null;var n=parseInt(m[1],16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';}
-  function setTint(hex){if(hex===lastTint)return;lastTint=hex;var c=hexToRgba(hex,.62),c2=hexToRgba(hex,.26);if(!c){TA.className='tint';TB.className='tint';return;}
-    var next=tintFront===TA?TB:TA;next.style.background='radial-gradient(ellipse 60% 55% at 50% 105%,'+c+',transparent 70%),linear-gradient(to top,'+c2+',transparent 45%)';next.className='tint on';tintFront.className='tint';tintFront=next;}
+  function setTint(hex){if(hex===lastTint)return;lastTint=hex;var u=tintImg(hex);if(!u){TA.className='tint';TB.className='tint';return;}
+    var next=tintFront===TA?TB:TA;next.src=u;next.className='tint on';tintFront.className='tint';tintFront=next;}
 
   /* ---------- meteo: Open-Meteo, Berbenno di Valtellina ---------- */
   var WICON={
@@ -247,8 +260,36 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     return once().catch(function(){return new Promise(function(r){setTimeout(r,2000)}).then(once)}).catch(function(e){dbg.appsErr=String(e);return null});});}
   function sysIconUrl(a){if(a.hub)return SVC+'/hubicon?id='+encodeURIComponent(a.hub);if(a.iconOk===true&&a.iconPath)return SVC+'/icon?path='+encodeURIComponent(a.iconPath);return null;}
   function noService(){toast(NATIVE?'Servizio non attivo: chiudi e riapri Milano Home':'Servizio non attivo: riapri Milano Home da TizenBrew',4000);}
+  /* Ritorno a Milano Home nell'app nativa. Sulla QN90A l'API REST della TV risponde "running: false" anche per l'app aperta, quindi il
+     servizio non si accorge dell'uscita. Segnale usato qui: con un'app in primo piano la finestra TV è ferma (signal null); quando si
+     esce la TV torna al visore sulla sorgente di prima e signal diventa true/false. Serve il privilegio tv.window (pacchetto >= 3.0.2).
+     shortcut: se la sorgente di prima è il sintonizzatore senza antenna, signal resta null e non si torna; nel caso, guardare anche tizen.application.getAppsContext. */
+  var backT=null,TV_VIEWER='org.tizen.tv-viewer';
+  function tvWin(){try{return (NATIVE&&window.tizen&&tizen.tvwindow)||null;}catch(e){return null;}}
+  function stopBack(){clearInterval(backT);backT=null;}
+  function watchBack(){stopBack();var tw=tvWin(),s0,t0=Date.now(),hid=false;if(!tw||prefs.back===false)return;
+    try{s0=tw.getSource('MAIN');}catch(e){return;}
+    if(!s0||typeof s0.signal==='boolean')return;
+    backT=setInterval(function(){var s,age=Date.now()-t0;
+      if(document.hidden)hid=true;
+      if((hid&&!document.hidden)||(!hid&&age>30000)||age>6*3600000)return stopBack();
+      if(!hid)return;
+      try{s=tw.getSource('MAIN');}catch(e){return;}
+      if(s&&typeof s.signal==='boolean'&&s.type===s0.type&&s.number===s0.number){stopBack();try{localStorage.setItem('mh_back',String(Date.now()));}catch(e){}
+        try{tizen.application.launch(tizen.application.getCurrentApplication().appInfo.id);}catch(e){}}
+    },1500);}
+  /* Sorgenti HDMI nell'app nativa: la sorgente si sceglie con l'API della finestra TV e poi si passa al visore di sistema. Il canale
+     telecomando, dalla TV stessa, sulla QN90A non risponde. Senza il privilegio (pacchetto 3.0.0/3.0.1) o sotto TizenBrew resta il tasto. */
+  function goSource(it){var tw=tvWin();function viaKey(){sendKey('KEY_HDMI'+it.n);}
+    if(!tw)return viaKey();
+    try{tizen.systeminfo.getPropertyValue('VIDEOSOURCE',function(v){var on=v.connected||[],s=null;on.concat(v.disconnected||[]).forEach(function(x){if(x.type==='HDMI'&&x.number===it.n)s=x;});
+      if(!s)return toast('HDMI '+it.n+' non presente su questa TV',4000);
+      if(on.indexOf(s)<0)toast(it.name+': nessun segnale su HDMI '+it.n,5000);
+      try{tw.setSource(s,function(){stopBack();tizen.application.launch(TV_VIEWER,null,function(e){toast('Sorgente impostata, ma il visore TV non si apre'+(e&&e.message?': '+e.message:''),5000);});},
+        function(e){toast('HDMI '+it.n+': '+((e&&e.message)||'cambio di sorgente rifiutato'),5000);});}catch(e){viaKey();}
+    },viaKey);}catch(e){viaKey();}}
   function launchApp(id,name){ensureService().then(function(ok){if(!ok)return noService();
-    fetchJson(SVC+'/launch?id='+encodeURIComponent(id)+'&back='+(prefs.back===false?0:1),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+name+': '+j.error,3000)}).catch(function(){toast('Servizio non raggiungibile',3000)});});}
+    fetchJson(SVC+'/launch?id='+encodeURIComponent(id)+'&back='+(prefs.back===false?0:1),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+name+': '+j.error,3000);else watchBack();}).catch(function(){toast('Servizio non raggiungibile',3000)});});}
   function sendKey(key,okMsg){ensureService().then(function(ok){if(!ok)return noService();
     fetchJson(SVC+'/key?key='+key,40000).then(function(j){if(j.error)toast(shortErr(j.error),5000);else if(okMsg)toast(okMsg);}).catch(function(){toast('Nessuna risposta dalla TV',4000)});});}
   function shortErr(e){e=String(e||'');if(e.length<120)return e;var m=/codice (\d+)( [^)]+)?/.exec(e);
@@ -270,7 +311,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     return new Promise(function(res){if(!isTV)return res(null);
     modulesRes=res;withWs(function(ok){if(!ok){if(modulesRes){modulesRes=null;res(null);}return;}ws.send(JSON.stringify({type:4,payload:false}));
       setTimeout(function(){if(modulesRes){modulesRes=null;res(null);}},4000);});});}
-  function launchModule(m){if(NATIVE){ensureService().then(function(ok){if(!ok)return noService();fetchJson(SVC+'/module?name='+encodeURIComponent(m.fullName),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+(m.appName||m.name)+': '+j.error,4000)}).catch(function(){toast('Servizio non raggiungibile',3000)});});return;}
+  function launchModule(m){if(NATIVE){ensureService().then(function(ok){if(!ok)return noService();fetchJson(SVC+'/module?name='+encodeURIComponent(m.fullName),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+(m.appName||m.name)+': '+j.error,4000);else watchBack();}).catch(function(){toast('Servizio non raggiungibile',3000)});});return;}
     withWs(function(ok){if(!ok){toast('TizenBrew non risponde: riapri Milano Home',4000);return;}
     ws.send(JSON.stringify({type:5,payload:m}));
     if(m.evaluateScriptOnDocumentStart){pendingNav=m;setTimeout(function(){if(pendingNav===m){pendingNav=null;location.href=m.appPath;}},5000);}
@@ -309,7 +350,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     if(it.kind!=='off'&&it.kind!=='home'&&it.kind!=='brew'&&it.kind!=='settings'){prefs.last=it.id;prefs.lastAt[it.id]=Date.now();savePrefs();}
     if(!isTV||demoMode){toast('Apro '+it.name+' (anteprima)');return;}
     if(it.kind==='app')launchApp(it.id,it.name);else if(it.kind==='module')launchModule(it.mod);
-    else if(it.kind==='hdmi'){toast('Passo a '+it.name+'…',4000);sendKey('KEY_HDMI'+it.n);}
+    else if(it.kind==='hdmi'){toast('Passo a '+it.name+'…',4000);goSource(it);}
     else if(it.kind==='off')powerOff();
     else if(it.kind==='home')sendKey('KEY_HOME');
     else if(it.kind==='brew')goTizenBrew();
@@ -474,7 +515,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
       'servizio: '+(svcOk?'ok v'+s.v+' commit '+(s.ref?String(s.ref).slice(0,7):'?')+' node '+s.node+(s.dir?' · dati: '+s.dir:'')+(s.boot?' · avviato da '+s.boot.source+(s.boot.lastError?' · '+s.boot.lastError:''):' · bootstrap 1.x'):'assente')+'  ·  moduli: '+(dbg.modsOk?modules.map(function(m){return m.name}).join(', '):'non ricevuti')+'  ·  app: '+allApps.length+(dbg.appsErr?'  ·  errore: '+dbg.appsErr:'')+'  ·  in cache: '+(cached&&cached.apps?cached.apps.length:0),
       'Smart Hub: '+(dbg.hub!==undefined&&dbg.hub!==null?dbg.hub+' app dal canale':'canale non disponibile')+(dbg.hubErr?' ('+dbg.hubErr+')':'')+' · cartella icone: '+(hub.dir!==undefined&&hub.dir!==null?hub.dir+' app':'non leggibile'+(hub.dirError?' ('+hub.dirError+')':''))+' · abbinate: '+allApps.filter(function(a){return a.hub}).length+' · IP TV: '+(s.lan||'?')+(hub.chan?' · canale ok su '+hub.chan.host+(hub.chan.tls?':8002':':8001')+' '+(hub.chan.api||'v2'):'')+(hub.bad&&hub.bad.length?' · scartati: '+hub.bad.join(', '):''),
       'tentativi canale: '+((hub.attempts||[]).map(function(a){return a.host+':'+a.port+'/'+(a.api||'v2')+(a.token?' token':'')+' → '+a.result+(a.events&&a.events.length?' ['+a.events.join(', ')+']':'');}).join('  |  ')||'nessuno'),
-      'ritorno a Milano Home: '+(s.lastReturn?s.lastReturn.method+(s.lastReturn.error?' ('+s.lastReturn.error+')':' ok')+' · '+agoText(s.lastReturn.at):'mai')+(dbg.wallErr?' · sfondo non caricato: '+dbg.wallErr:'')];
+      'ritorno a Milano Home: '+(s.lastReturn?s.lastReturn.method+(s.lastReturn.error?' ('+s.lastReturn.error+')':' ok')+' · '+agoText(s.lastReturn.at):(+localStorage.getItem('mh_back')?'dalla pagina · '+agoText(+localStorage.getItem('mh_back')):'mai'))+(NATIVE?' · finestra TV: '+(function(){try{var w=tizen.tvwindow.getSource('MAIN');return w.type+' '+w.number;}catch(e){return 'non leggibile ('+e.name+')';}})():'')+(dbg.wallErr?' · sfondo non caricato: '+dbg.wallErr:'')];
     allApps.forEach(function(a){lines.push((a.show===false?'[nascosta] ':'')+(a.hub?'[hub '+a.hub+'] ':'')+(a.iconOk===true?'[icona] ':a.iconOk===false?'[icona assente] ':'')+(iconKeyFor(a.name,a.id)?'[nostra] ':'')+a.name+'  ·  '+a.id);});
     d.textContent=lines.join('\n');d.scrollTop=0;}
 
