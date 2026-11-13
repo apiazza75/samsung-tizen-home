@@ -285,7 +285,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     if(!tw)return viaKey();
     try{tizen.systeminfo.getPropertyValue('VIDEOSOURCE',function(v){var on=v.connected||[],s=null;on.concat(v.disconnected||[]).forEach(function(x){if(x.type==='HDMI'&&x.number===it.n)s=x;});
       if(!s)return toast('HDMI '+it.n+' non presente su questa TV',4000);
-      if(on.indexOf(s)<0)toast(it.name+': nessun segnale su HDMI '+it.n,5000);
+      if(on.indexOf(s)<0)toast('Nessun segnale su HDMI '+it.n+': controlla che il dispositivo sia acceso',5000);
       try{tw.setSource(s,function(){stopBack();tizen.application.launch(TV_VIEWER,null,function(e){toast('Sorgente impostata, ma il visore TV non si apre'+(e&&e.message?': '+e.message:''),5000);});},
         function(e){toast('HDMI '+it.n+': '+((e&&e.message)||'cambio di sorgente rifiutato'),5000);});}catch(e){viaKey();}
     },viaKey);}catch(e){viaKey();}}
