@@ -91,7 +91,7 @@
      tornare. L'elenco completo arriverebbe dal canale Smart Hub, se la TV tornasse a rispondere. */
   var HUB_IDS = { 'org.tizen.netflix-app': '3201907018807', 'org.tizen.primevideo': '3201910019365', '9Ur5IzDKqV.TizenYouTube': '111299001912',
     'com.samsung.tv.cobalt-yt': '111299001912', 'MCmYXNxgcu.DisneyPlus': '3201901017640', 'yu1NM3vHsU.DAZN': '3201806016390',
-    'rJeHak5zRg.Spotify': '3201606009684', '5im3FztIhW.RaiTVtizen': '111399002034' };
+    'rJeHak5zRg.Spotify': '3201606009684', '5im3FztIhW.RaiTVtizen': '111399002034', 'OGLLvqej7u.CrunchyrollWebApp': '3202302030097' };
   // cb(true|false|null): in primo piano, non più, non si sa (si riprova al giro dopo)
   function inFront(w, cb) { var id = w.id;
     getJson('/api/v2/applications/' + encodeURIComponent(HUB_IDS[id] || id), function (err, j) {
