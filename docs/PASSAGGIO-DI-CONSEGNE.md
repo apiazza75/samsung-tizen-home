@@ -16,6 +16,10 @@ non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
   + estensioni Samsung; 3) Modalità sviluppatore sulla TV con l'IP del Mac (annotare prima il valore attuale: TizenBrew lo vuole a
   127.0.0.1) e riavvio; 4) sdb connect e DUID; 5) certificato Samsung; 6) firma; 7) installazione; 8) le cinque verifiche sulla TV
   elencate in APP-NATIVA.md; 9) IP del computer rimesso com'era.
+- Passo 1 fatto (13/11): Mac = macOS 27.0.1, processore Apple (arm64), IP 192.168.1.30 (en0); git e Node (Homebrew) presenti;
+  niente Java, niente Tizen Studio, niente sdb. Tizen Studio è fermo alla 6.1 (aprile 2025, ultima versione) ed è solo x86_64:
+  sul Mac serve Rosetta 2. Il certificato Samsung si crea solo dal Certificate Manager (accesso con account Samsung, niente CLI);
+  i pacchetti da aggiungere a un'installazione solo CLI sono `Certificate-Manager` e `cert-add-on` (da confermare con show-pkgs).
 - Fatto al 13/11: nessuna modifica alla TV. Da chiarire al passo 3: il valore attuale dell'IP del computer sulla TV potrebbe
   spiegare perché l'autoavvio di TizenBrew non parte (punto 6 più sotto).
 
