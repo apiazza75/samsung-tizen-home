@@ -29,10 +29,13 @@ global.tizen = {
     getAppsInfo(ok) { setTimeout(() => ok(APPS.map(a => Object.assign({}, a))), 10); },
     launch(id, ok, err) { logLaunch({ method: 'launch', id }); if (id.indexOf('fail') >= 0) return err && err(new Error('launch refused')); ok && ok(); },
     launchAppControl(ctrl, id, ok, err) { logLaunch({ method: 'appcontrol', id, operation: ctrl.operation, data: ctrl.data.map(d => ({ key: d.key, value: d.value })) }); if (process.env.MH_FAKE_NO_APPCONTROL) return err && err(new Error('NotSupportedError')); ok && ok(); },
-    getCurrentApplication() { return { appInfo: { packageId: 'xvvl3S1bvH' } }; }
+    getCurrentApplication() { return { appInfo: { packageId: process.env.MH_FAKE_PKG || 'xvvl3S1bvH' } }; }
   }
 };
 if (process.env.MH_FAKE_NO_APPCONTROL === 'ctor') { delete global.tizen.ApplicationControl; }
+// --native: il file è il servizio di un pacchetto nativo (native/service.js assemblato da tools/build-native.js): modulo Node normale,
+// avviato come fa la TV con onStart(); niente sandbox di TizenBrew.
+if (process.argv.indexOf('--native') >= 0) { require(path.resolve(file)).onStart(); console.log('nativo: ' + path.basename(file) + ' avviato'); process.on('SIGTERM', () => process.exit(0)); return; }
 const sandbox = {};
 Object.getOwnPropertyNames(global).forEach(prop => {
   const disAllowed = ['services', 'module', 'global', 'inDebug', 'currentClient', 'currentModule'];
