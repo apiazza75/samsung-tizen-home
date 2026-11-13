@@ -88,7 +88,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 .all .mini .d{font-size:1.2vw;color:rgba(244,246,251,.75)}
 .all .help{position:absolute;right:5vw;top:4.6vh;font-size:.95vw;color:rgba(244,246,251,.55);letter-spacing:.04em}
 .all .viewport{position:absolute;left:5vw;right:5vw;top:11vh;bottom:0;overflow:hidden}
-.sections{transition:transform .22s ease-out;padding-top:1vw;will-change:transform}
+.sections{position:relative;transition:transform .22s ease-out;padding-top:1vw;will-change:transform}
 .sec{margin-bottom:1.2vw}
 .sec .sh{font-size:1.35vw;font-weight:600;letter-spacing:.01em;color:rgba(244,246,251,.9);margin:0 0 .7vw .3vw;text-shadow:0 1px 10px rgba(0,0,0,.7)}
 .sec .sh span{color:rgba(244,246,251,.4);font-weight:500;margin-left:.6em;font-size:.85em}
@@ -102,7 +102,8 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 .card .tx{margin-left:1vw;overflow:hidden}
 .card .nm{font-size:1.25vw;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card .sub{font-size:.9vw;color:var(--fg-dim);margin-top:.2vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card.is-focus{background:var(--glass-strong);transform:scale(1.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 .2vw var(--focus);z-index:2}
+/* selezione nella griglia: un riquadro su un livello suo che scorre sopra le card, così le card non vengono mai ridisegnate */
+.gcur{position:absolute;left:0;top:0;width:16.8vw;height:6.6vw;border-radius:1.2vw;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 .2vw var(--focus);pointer-events:none;will-change:transform;transition:transform .14s ease-out}
 /* menu e diagnostica */
 .panel{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(3,5,12,.55);opacity:0;visibility:hidden;transition:opacity .25s,visibility 0s linear .25s;will-change:opacity;z-index:20}
 .panel.show{opacity:1;visibility:visible;transition:opacity .25s}
@@ -397,7 +398,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     .map(function(c,i){c.kind=c.kind||'app';c.id='demo'+i;c.def=c.def!==false;c.rank=i;if(!ICONS[c.key])c.key=null;c.cat=(c.key&&KEY_CAT[c.key])||'altre';return c;});applyPrefs();render();buildGrid();}
 
   /* --- griglia di tutte le app (freccia giù): sezioni per categoria, blocchi rettangolari, navigazione a 4 direzioni --- */
-  var allEl=$('all'),secEl=$('sections'),gridOpen=false,gsec=[],gi=0,gj=0;
+  var allEl=$('all'),secEl=$('sections'),gridOpen=false,gsec=[],gi=0,gj=0,gcur=null;
   function gridItems(){return catalog.filter(function(c){return c.kind!=='app'||!c.sys||isVisible(c);});}
   function buildGrid(){var groups={};gridItems().forEach(function(c){var k=c.cat||'altre';(groups[k]=groups[k]||[]).push(c);});
     gsec=[];CAT_ORDER.forEach(function(k){if(!groups[k])return;groups[k].sort(function(a,b){return a.rank-b.rank||a.name.localeCompare(b.name)});gsec.push({key:k,title:CAT[k],items:groups[k],els:[]});});
@@ -405,14 +406,15 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
       var cards=d.querySelector('.cards');s.items.forEach(function(it,ii){var c=document.createElement('div');c.className='card';c.innerHTML=iconHtml(it)+'<div class="tx"><div class="nm"></div><div class="sub"></div></div>';
         c.querySelector('.nm').textContent=it.name;c.querySelector('.sub').textContent=subOf(it)||(it.kind==='app'?'':'');c.addEventListener('click',function(){gi=si;gj=ii;gfocus();press(c);open(it);});cards.appendChild(c);s.els.push(c);});
       secEl.appendChild(d);});
+    gcur=document.createElement('div');gcur.className='gcur';secEl.appendChild(gcur);
     if(gridOpen)gfocus();}
   function gfocus(){if(!gsec.length)return;gi=Math.max(0,Math.min(gi,gsec.length-1));gj=Math.max(0,Math.min(gj,gsec[gi].items.length-1));
     gsec.forEach(function(s,si){s.els.forEach(function(e,ii){e.classList.toggle('is-focus',si===gi&&ii===gj)});});
     // posizioni misurate rispetto al contenitore che scorre (indipendenti da transform e da offsetParent)
-    var el=gsec[gi].els[gj],vp=secEl.parentNode,vh=vp.clientHeight,base=secEl.getBoundingClientRect().top,top=el.getBoundingClientRect().top-base,h=el.offsetHeight,cur0=secEl._shift||0,shift=cur0;
+    var el=gsec[gi].els[gj],vp=secEl.parentNode,vh=vp.clientHeight,sr=secEl.getBoundingClientRect(),er=el.getBoundingClientRect(),base=sr.top,top=er.top-base,h=el.offsetHeight,cur0=secEl._shift||0,shift=cur0;
     var secTop=el.parentNode.parentNode.getBoundingClientRect().top-base;
     if(secTop-shift<0)shift=secTop;if(top+h+vh*0.06-shift>vh)shift=top+h+vh*0.06-vh;if(gj===0&&gi===0)shift=0;if(shift<0)shift=0;
-    secEl._shift=shift;secEl.style.transform='translateY('+(-shift)+'px)';setTint(tintOf(gsec[gi].items[gj]));}
+    secEl._shift=shift;secEl.style.transform='translateY('+(-shift)+'px)';if(gcur)gcur.style.transform='translate('+(er.left-sr.left)+'px,'+top+'px)';setTint(tintOf(gsec[gi].items[gj]));}
   function openGrid(){if(!gsec.length){toast('Nessuna app da mostrare');return;}gridOpen=true;
     var it=items[cur];gi=0;gj=0;if(it){gsec.forEach(function(s,si){var k=s.items.indexOf(it);if(k>=0){gi=si;gj=k;}});}
     allEl.classList.add('show');$('stage').classList.add('dim');gfocus();}
