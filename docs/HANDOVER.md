@@ -109,8 +109,8 @@ English, interface in Italian, English, Spanish, German and French with an easy 
 both of his TVs updated (living room QN90A at 192.168.1.10, plus a kitchen TV not yet reachable on the network).
 
 Done in 3.1.0 (local tests: 82 + 42 + 47 passed):
-- Name: "Quiet Home" everywhere the user sees it. Native package ids are now `QuietHome`, `QuietHome.Launcher`,
-  `QuietHome.Service`, data folder `/home/owner/share/quiethome-native`, package file `dist/QuietHome.wgt`. Internal prefixes
+- Name: "Quiet Home" everywhere the user sees it. Native package ids are now `QuietHomeT` (10 characters, required by Tizen), `QuietHomeT.Launcher`,
+  `QuietHomeT.Service`, data folder `/home/owner/share/quiethome-native`, package file `dist/QuietHome.wgt`. Internal prefixes
   (`mh_*`, `MH_*`, `milanohome-*` cache files) are unchanged on purpose. The repository and TizenBrew module name are unchanged.
 - Languages: English built into `app/launcher.html` (`EN`), the others in `app/lang/<code>.json`, downloaded from the commit in
   use and cached in localStorage (`mh_lang`); the native package carries them inside `bundled.js` (`window.MH_LANGS`). The
@@ -126,7 +126,7 @@ Done in 3.1.0 (local tests: 82 + 42 + 47 passed):
 
 Still to do:
 - The living-room TV still has the OLD package `MilanoHome` 3.0.2 (it self-updates launcher and service, so it already shows
-  Quiet Home). To move to the `QuietHome` package: uninstall the old one first (both services would listen on 8096), install the
+  Quiet Home). To move to the `QuietHomeT` package: uninstall the old one first (both services would listen on 8096), install the
   new one, restore the row order and the weather city (the preferences belong to the old package and are lost).
 - Kitchen TV: not found on the network on 13/11 (scan of 192.168.1.0/24 on ports 8001 and 26101). It needs to be on, with the
   developer IP set to this Mac, and the distributor certificate must be re-issued with its DUID as well.

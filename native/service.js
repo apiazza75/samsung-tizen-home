@@ -15,7 +15,7 @@ function writable(d) {
 }
 function start() {
   if (started) return; started = true;
-  var pkg = 'QuietHome';
+  var pkg = 'QuietHomeT';
   try { pkg = tizen.application.getCurrentApplication().appInfo.packageId || pkg; } catch (e) {}
   global.MH_NATIVE = { app: pkg + '.Launcher' };
   var ref = null;

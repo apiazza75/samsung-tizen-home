@@ -31,7 +31,7 @@ async function main() {
   const files = ['config.xml', 'icon.png', 'index.html', 'native.js', 'bundled.js', 'wall1.jpg', 'service/service.js', 'service/boot.js', 'service/service-core.js', 'service/bundled.json'];
   ok(files.every(f => fs.existsSync(path.join(pkg, f))), 'pacchetto assemblato con tutti i file', files.filter(f => !fs.existsSync(path.join(pkg, f))));
   const cfg = fs.readFileSync(path.join(pkg, 'config.xml'), 'utf8');
-  ok(/version="3\.2\.0"/.test(cfg) && cfg.indexOf('id="QuietHome.Launcher"') > 0 && cfg.indexOf('<tizen:service id="QuietHome.Service">') > 0 && cfg.indexOf('@VERSION@') < 0, 'config.xml: versione, app e servizio');
+  ok(/version="3\.2\.0"/.test(cfg) && cfg.indexOf('id="QuietHomeT.Launcher"') > 0 && cfg.indexOf('<tizen:service id="QuietHomeT.Service">') > 0 && cfg.indexOf('@VERSION@') < 0, 'config.xml: versione, app e servizio');
   ok(cfg.indexOf('privilege/tv.window') > 0 && cfg.indexOf('reload="disable"') > 0, 'config.xml: privilegio finestra TV (sorgenti, ritorno) e rilancio senza ricarica');
 
   spawn('tv', [path.join(__dirname, 'fake-tv.js'), 'ok']); spawn('net', [path.join(__dirname, 'fake-net.js')]);
@@ -40,7 +40,7 @@ async function main() {
   fs.writeFileSync(brewCfg, JSON.stringify({ modules: ['npm/@foxreis/tizentube', 'gh/apiazza75/samsung-tizen-home'], autoLaunchServiceList: [], autoLaunchModule: '' }));
   const data = fs.mkdtempSync(path.join(os.tmpdir(), 'mh-native-'));
   const env = { MH_CDN: NET + '/gh/apiazza75/samsung-tizen-home@', MH_API: NET + '/api/commits/main', MH_DATA_DIR: data, MH_TV_HOST: '127.0.0.1', MH_TV_PORT: '18001', MH_TV_PORT_TLS: '18002', MH_LAN_IP: '127.0.0.2',
-    MH_HUB_DIR: path.join(data, 'no-such-dir'), MH_FAKE_PKG: 'QuietHome', MH_BREW_CONFIG: brewCfg };
+    MH_HUB_DIR: path.join(data, 'no-such-dir'), MH_FAKE_PKG: 'QuietHomeT', MH_BREW_CONFIG: brewCfg };
   const startSvc = () => spawn('svc', [path.join(__dirname, 'sandbox.js'), path.join(pkg, 'service', 'service.js'), '--native'], env);
 
   console.log('\n[N1] primo avvio senza rete: il servizio parte dal core incluso nel pacchetto');
@@ -51,7 +51,7 @@ async function main() {
   if (p) {
     ok(p.native === true && p.v === '3.2.0', 'modalità nativa, versione 3.2.0', { native: p.native, v: p.v });
     ok(p.ref === SHA1 && p.boot && p.boot.source === 'cache', 'core del pacchetto, senza rete', { ref: p.ref, boot: p.boot });
-    ok(p.self === 'QuietHome.Launcher', 'il launcher da riaprire è l\'app nativa', p.self);
+    ok(p.self === 'QuietHomeT.Launcher', 'il launcher da riaprire è l\'app nativa', p.self);
   }
   ok((await get(OLD + '/ping')).code !== 200, 'la porta 8095 del modulo TizenBrew resta libera');
   let apps = await get(SVC + '/apps', PAGE);
@@ -88,7 +88,7 @@ async function main() {
   const before = launched(data).length;
   await get(SVC + '/launch?id=11101200001.Netflix&back=1', PAGE); await get(TV + '/__ctl?running=11101200001.Netflix:1'); await sleep(2600); await get(TV + '/__ctl?running=11101200001.Netflix:0'); await sleep(3400);
   const after = launched(data).slice(before + 1);
-  ok(after.length === 1 && after[0].method === 'launch' && after[0].id === 'QuietHome.Launcher', 'riaperto QuietHome.Launcher con un launch', after);
+  ok(after.length === 1 && after[0].method === 'launch' && after[0].id === 'QuietHomeT.Launcher', 'riaperto QuietHomeT.Launcher con un launch', after);
   p = (await get(SVC + '/ping')).json;
   ok(p && p.lastReturn && p.lastReturn.method === 'launch' && !p.lastReturn.error, 'ritorno registrato in diagnostica', p && p.lastReturn);
   // come sulla TV vera: Netflix si interroga con l'id Smart Hub e dopo l'uscita resta "running" ma non più "visible"
@@ -97,7 +97,7 @@ async function main() {
   ok(launched(data).length === b2 + 1, 'Netflix in primo piano: nessun ritorno', launched(data).slice(b2));
   await get(TV + '/__ctl?running=3201907018807:s'); await sleep(3400);
   const after2 = launched(data).slice(b2 + 1);
-  ok(after2.length === 1 && after2[0].id === 'QuietHome.Launcher', 'Netflix sospesa dopo l\'uscita (running, non visible): Quiet Home torna', after2);
+  ok(after2.length === 1 && after2[0].id === 'QuietHomeT.Launcher', 'Netflix sospesa dopo l\'uscita (running, non visible): Quiet Home torna', after2);
 
   console.log('\n[N5] main avanza: il servizio nativo si aggiorna da solo e resta nativo');
   const over = fs.mkdtempSync(path.join(os.tmpdir(), 'mh-native-over-')); fs.mkdirSync(path.join(over, 'app'));
@@ -127,7 +127,7 @@ async function main() {
   const browser = await chromium.launch();
   const INIT = "window.MH_CDN='" + NET + "/gh/apiazza75/samsung-tizen-home@';window.MH_API='" + NET + "/api/commits/main';window.__tz={keys:[],svc:[],launched:[],src:{type:'HDMI',number:1,signal:null}};" +
     "Object.defineProperty(document,'hidden',{get:function(){return !!window.__hid;}});" +
-    "window.tizen={ApplicationControl:function(op){this.operation=op;},application:{getCurrentApplication:function(){return{appInfo:{packageId:'QuietHome',id:'QuietHome.Launcher'}}}," +
+    "window.tizen={ApplicationControl:function(op){this.operation=op;},application:{getCurrentApplication:function(){return{appInfo:{packageId:'QuietHomeT',id:'QuietHomeT.Launcher'}}}," +
     "launch:function(id,ok){window.__tz.launched.push(id);ok&&ok();}," +
     "launchAppControl:function(c,id,ok){window.__tz.svc.push({op:c.operation,id:id});ok&&ok();}}," +
     "tvwindow:{getSource:function(){return window.__tz.src;},setSource:function(s,ok){window.__tz.src={type:s.type,number:s.number,signal:null};ok&&ok(s,'MAIN');}}," +
@@ -149,7 +149,7 @@ async function main() {
   console.log('\n[N8] launcher del pacchetto: parte dal file incluso, parla con il servizio nativo');
   let page = await open(); let s = await state(page);
   ok(s.native && s.source === 'package' && s.ref === SHA1, 'launcher dal pacchetto (' + s.source + ', ' + String(s.ref).slice(0, 7) + ')', { native: s.native, source: s.source });
-  ok(s.tz.svc.length >= 1 && s.tz.svc[0].id === 'QuietHome.Service' && /operation\/service$/.test(s.tz.svc[0].op), 'servizio del pacchetto avviato dalla pagina', s.tz.svc);
+  ok(s.tz.svc.length >= 1 && s.tz.svc[0].id === 'QuietHomeT.Service' && /operation\/service$/.test(s.tz.svc[0].op), 'servizio del pacchetto avviato dalla pagina', s.tz.svc);
   ok(s.tz.keys.indexOf('ChannelUp') >= 0 && s.tz.keys.indexOf('ChannelDown') >= 0, 'tasti canale registrati', s.tz.keys);
   ok(s.items.length >= 5 && s.items.every(i => i.svg), 'riga con ' + s.items.length + ' app e icone nostre', s.items.map(i => i.name));
   ok(s.items[0].name === 'YouTube', 'TizenTube (modulo di TizenBrew) in testa come YouTube', s.items.map(i => i.name));

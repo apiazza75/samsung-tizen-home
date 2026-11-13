@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://github.com/apiazza75/samsung-tizen-home" version="@VERSION@" viewmodes="maximized">
-    <tizen:application id="QuietHome.Launcher" package="QuietHome" required_version="3.0"/>
+    <tizen:application id="QuietHomeT.Launcher" package="QuietHomeT" required_version="3.0"/>
     <name>Quiet Home</name>
     <author href="https://github.com/apiazza75/samsung-tizen-home">Quiet Home</author>
     <description>A clean, quiet home screen for Samsung Smart TVs (Tizen).</description>
@@ -20,7 +20,7 @@
     </tizen:app-control>
     <tizen:metadata key="http://samsung.com/tv/metadata/prelaunch.support" value="true"/>
     <tizen:profile name="tv-samsung"/>
-    <tizen:service id="QuietHome.Service">
+    <tizen:service id="QuietHomeT.Service">
         <tizen:content src="service/service.js"/>
         <tizen:name>QuietHomeService</tizen:name>
         <tizen:description>Quiet Home service</tizen:description>
