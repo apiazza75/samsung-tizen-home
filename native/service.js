@@ -8,21 +8,21 @@
 var fs = require('fs');
 var path = require('path');
 var started = false;
-function log(m) { console.log('MilanoHome nativa: ' + m); }
+function log(m) { console.log('QuietHome native: ' + m); }
 function read(f) { try { return fs.readFileSync(f, 'utf8'); } catch (e) { return null; } }
 function writable(d) {
   try { try { fs.mkdirSync(d); } catch (e) {} var f = path.join(d, '.mh-prova'); fs.writeFileSync(f, '1'); fs.unlinkSync(f); return true; } catch (e) { return false; }
 }
 function start() {
   if (started) return; started = true;
-  var pkg = 'MilanoHome';
+  var pkg = 'QuietHome';
   try { pkg = tizen.application.getCurrentApplication().appInfo.packageId || pkg; } catch (e) {}
   global.MH_NATIVE = { app: pkg + '.Launcher' };
   var ref = null;
   try { ref = JSON.parse(read(path.join(__dirname, 'bundled.json'))).ref; } catch (e) {}
   var core = read(path.join(__dirname, 'service-core.js'));
   // cartella dati: quella condivisa usata anche da TizenBrew (in una sottocartella nostra), altrimenti una temporanea
-  var dirs = process.env.MH_DATA_DIR ? [process.env.MH_DATA_DIR] : ['/home/owner/share/milanohome-native', '/tmp/milanohome-native'], dir = null;
+  var dirs = process.env.MH_DATA_DIR ? [process.env.MH_DATA_DIR] : ['/home/owner/share/quiethome-native', '/tmp/quiethome-native'], dir = null;
   for (var i = 0; i < dirs.length && !dir; i++) if (writable(dirs[i])) dir = dirs[i];
   if (!dir) {
     // nessuna cartella scrivibile: eseguo il core del pacchetto così com'è (niente aggiornamenti automatici del servizio)

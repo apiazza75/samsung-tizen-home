@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=1920, initial-scale=1">
-<title>Milano Home</title>
+<title>Quiet Home</title>
 <style>
 /* Milano Home — launcher per Samsung Tizen (modulo TizenBrew). Tenuto in cache sulla TV da index.html (bootstrap) e aggiornato
    dall'ultimo commit di main. CSS per Chromium 76 (Tizen 6): niente gap nei flex, clamp, inset, aspect-ratio. Il font è incorporato. */
@@ -17,11 +17,11 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 .stage{position:fixed;top:0;left:0;right:0;bottom:0;overflow:hidden;background:var(--bg)}
 .wall{position:absolute;top:-5%;left:-5%;right:-5%;bottom:-5%;background-size:cover;background-position:center;opacity:0;transition:opacity 2.5s ease;will-change:transform,opacity}
 .wall.on{opacity:1}
-.wall.kb1{animation:kb1 50s linear forwards}.wall.kb2{animation:kb2 50s linear forwards}.wall.kb3{animation:kb3 50s linear forwards}.wall.kb4{animation:kb4 50s linear forwards}
-@keyframes kb1{from{transform:scale(1.02) translate(-2%,1.2%)}to{transform:scale(1.11) translate(2%,-1.2%)}}
-@keyframes kb2{from{transform:scale(1.11) translate(2%,1.2%)}to{transform:scale(1.02) translate(-2%,-1.2%)}}
-@keyframes kb3{from{transform:scale(1.04) translate(2%,-1.2%)}to{transform:scale(1.12) translate(-2%,1.2%)}}
-@keyframes kb4{from{transform:scale(1.12) translate(-2%,-1.2%)}to{transform:scale(1.03) translate(2%,1.2%)}}
+.wall.kb1{animation:kb1 60s ease-in-out infinite alternate}.wall.kb2{animation:kb2 60s ease-in-out infinite alternate}.wall.kb3{animation:kb3 60s ease-in-out infinite alternate}.wall.kb4{animation:kb4 60s ease-in-out infinite alternate}
+@keyframes kb1{from{transform:scale(1.03) translate(-2%,1.2%)}to{transform:scale(1.2) translate(2.5%,-1.5%)}}
+@keyframes kb2{from{transform:scale(1.2) translate(2.5%,1.5%)}to{transform:scale(1.03) translate(-2%,-1.2%)}}
+@keyframes kb3{from{transform:scale(1.04) translate(2%,-1.2%)}to{transform:scale(1.2) translate(-2.5%,1.5%)}}
+@keyframes kb4{from{transform:scale(1.2) translate(-2.5%,-1.5%)}to{transform:scale(1.03) translate(2%,1.2%)}}
 .stage.dim .wall{opacity:.35}
 .hdr,.wx,.dock,.hint,.credit{transition:opacity .3s ease;will-change:opacity}
 .stage.dim .hdr,.stage.dim .wx,.stage.dim .dock,.stage.dim .hint,.stage.dim .credit{opacity:0}
@@ -125,6 +125,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 .panel .pos{font-size:.9vw;color:var(--fg-dim);text-align:right;margin-top:.6vw}
 .debug{position:fixed;left:3vw;right:3vw;top:3vh;bottom:3vh;z-index:25;background:rgba(5,7,14,.92);border-radius:1.5vw;padding:1.5vw 2vw;font-family:"Figtree",monospace;font-size:1vw;line-height:1.5;color:#d8deea;white-space:pre-wrap;word-wrap:break-word;overflow:hidden;display:none}
 .debug.show{display:block}
+.tin{width:100%;box-sizing:border-box;font:inherit;font-size:1.6vw;color:var(--fg);background:rgba(255,255,255,.08);border:0;border-radius:.9vw;padding:.9vw 1.1vw;outline:none;box-shadow:inset 0 0 0 .14vw var(--focus)}
 </style>
 </head>
 <body>
@@ -134,14 +135,14 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
   <div class="vignette"></div>
   <div class="credit" id="credit"></div>
   <div class="hdr"><div class="greet" id="greet"></div><div class="clock" id="clock">--:--</div><div class="date" id="date"></div></div>
-  <div class="wx" id="weather"><div class="now"><div class="d"><b>Meteo</b>in arrivo…</div></div></div>
+  <div class="wx" id="weather"></div>
   <div class="dock"><div class="viewport"><div class="row" id="row"></div></div></div>
-  <div class="hint" id="hint">← → scegli · Invio apri · ↓ tutte le app · ↑ menu</div>
+  <div class="hint" id="hint"></div>
 </div>
 <div class="all" id="all">
   <div class="shade"></div>
   <div class="mini"><div class="c" id="aclock"></div><div class="d" id="adate"></div></div>
-  <div class="help">← → ↑ ↓ sposta · Invio apre · Indietro chiude</div>
+  <div class="help" id="ghelp"></div>
   <div class="viewport"><div class="sections" id="sections"></div></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -151,7 +152,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
 <script>
 (function(){
   var $=function(id){return document.getElementById(id)};
-  var VERSION='3.0.4';
+  var VERSION='3.1.0';
   var NATIVE=window.MH_NATIVE||null; // app nativa Tizen (pacchetto .wgt): nessun TizenBrew sotto, servizio proprio sulla porta 8096
   var isTV=!!NATIVE||(location.protocol!=='file:'&&location.hostname==='127.0.0.1'); // nativa, oppure caricato da TizenBrew
   var REPO='apiazza75/samsung-tizen-home';
@@ -161,26 +162,55 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
   function toast(m,ms){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},ms||1800);}
   function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+  /* preferenze (ordine, nascoste, nomi HDMI, ultima app, lingua, sfondo, città del meteo), salvate sulla TV */
+  var prefs={order:[],hidden:[],hdmi:{},last:null,back:true,lastAt:{}};
+  try{var pp=localStorage.getItem('mh_prefs');if(pp){var o=JSON.parse(pp);for(var k in o)if(o[k]!==null&&o[k]!==undefined)prefs[k]=o[k];}}catch(e){}
+  if(!prefs.lastAt||typeof prefs.lastAt!=='object')prefs.lastAt={};
+  if(prefs.v!==2){prefs.order=[];prefs.hidden=[];prefs.v=2;try{localStorage.setItem('mh_prefs',JSON.stringify(prefs))}catch(e){}}
+  function savePrefs(){try{localStorage.setItem('mh_prefs',JSON.stringify(prefs))}catch(e){}}
+
+  /* ---------- lingue: l'inglese è qui dentro; le altre sono app/lang/<codice>.json, scaricate dal commit in uso e tenute in cache.
+     Per aggiungerne una: copiare app/lang/it.json, tradurre i valori (le chiavi e i segnaposto {0} restano) e aggiungere il codice a LANGS. ---------- */
+  var EN={"greet_night":"Good night","greet_morning":"Good morning","greet_afternoon":"Good afternoon","greet_evening":"Good evening","hint_row":"← → choose · OK open · ↓ all apps · ↑ menu","hint_grid":"← → ↑ ↓ move · OK opens · Back closes","wx_title":"Weather","wx_loading":"loading…","wx_unavailable":"not available","wx_setup":"choose your city in the menu (↑)","w_clear":"Clear","w_partly":"Partly cloudy","w_cloudy":"Cloudy","w_fog":"Fog","w_rain":"Rain","w_snow":"Snow","w_showers":"Showers","w_storm":"Thunderstorm","photo":"Photo: {0}","ago_now":"just now","ago_min":"{0} min ago","ago_h":"{0} h ago","ago_yesterday":"yesterday","ago_days":"{0} days ago","last_opened":"last opened {0}","svc_off_native":"Service not running: close and reopen Quiet Home","svc_off_brew":"Service not running: reopen Quiet Home from TizenBrew","hdmi_absent":"HDMI {0} is not available on this TV","hdmi_nosignal":"No signal on HDMI {0}: check that the device is on","src_viewer_fail":"Source set, but the TV viewer did not open","src_refused":"source change refused","open_fail":"Cannot open {0}: {1}","svc_unreachable":"Service not reachable: try again","tv_noanswer":"No answer from the TV","remote_refused":"The TV does not accept the remote-control channel{0}: details in menu ↑ → Diagnostics","off_confirm":"Press OK again to turn off the TV","off_now":"Turning off…","brew_noanswer":"TizenBrew is not responding: reopen Quiet Home","brew_opening":"Opening TizenBrew…","brew_fail":"TizenBrew did not open: {0}","brew_back":"Back to TizenBrew…","brew_nohistory":"TizenBrew page not in history: press Home and reopen TizenBrew","preview_open":"Opening {0} (preview)","switching":"Switching to {0}…","opening_settings":"Opening TV settings…","mod_tizentube":"TizenTube · no ads","mod_jellyfin":"movies and shows from your PC","mod_moonlight":"game streaming from your PC","cat_streaming":"Streaming","cat_media":"Media & music","cat_games":"Games","cat_sources":"Sources","cat_tv":"TV & system","cat_other":"Other apps","yt_samsung":"Samsung app, with ads","src_change":"switch source","brew_sub":"modules and updates","tv_settings":"TV settings","tv_settings_sub":"Samsung menu","samsung_home":"Samsung Home","samsung_home_sub":"leave the launcher","power":"Turn off","power_sub":"press OK twice","demo_noicon":"An app without an icon","no_apps":"No apps to show","no_apps_found":"No apps found · press ↑ and open Diagnostics","svc_updated":"Service updated to {0}","launcher_next":" · new launcher at next start","upd_downloaded":"Update downloaded: active the next time Quiet Home opens","menu_desc":"OK to choose · Back to close","m_pick":"Choose and order the apps in the row","m_hdmi":"HDMI input names","m_sys":"Show all system apps","m_back":"Return to Quiet Home when you leave an app: {0}","yes":"Yes","no":"No","m_reset":"Restore default order","order_reset":"Order restored","m_retry":"Retry the link with the TV (icons and keys)","m_diag":"Diagnostics","m_clear":"Clear the launcher cache and reload","m_lang":"Language: {0}","m_wall":"Background: {0}","wall_all":"all photos, in rotation","wall_none":"none (plain)","m_city":"Weather city: {0}","city_none":"not set","city_title":"Weather city","city_desc":"Type the city name and press OK · Back to cancel","city_searching":"Searching…","city_notfound":"No city found for “{0}”","city_pick":"Choose the city · Back to cancel","city_set":"Weather for {0}","retry_hub":"Retrying the link with the TV…","hub_unavail":"Smart Hub not available: {0}","hub_apps":"Smart Hub: {0} apps","svc_noanswer":"No answer from the service","p_sys_title":"All system apps","pick_desc":"OK = show/hide in the row · ← → (or channel ▲▼) = move up/down · Back = save and close","hdmi_desc":"← → change name · Back = save and close","mv":"◀ up · ▶ down","dup":" (duplicate)","sys":" (system)","empty":"No items","hd_settop":"Set-top box","hd_console":"Console","hd_bluray":"Blu-ray player"};
+  var LANGS={en:'English',it:'Italiano',es:'Español',de:'Deutsch',fr:'Français'};
+  var lang='en',L=EN;
+  function t(k){var s=(L&&L[k])||EN[k]||k;for(var i=1;i<arguments.length;i++)s=s.replace('{'+(i-1)+'}',arguments[i]);return s;}
+  function pickLang(){var p=prefs.lang||String(navigator.language||'en').slice(0,2).toLowerCase();return LANGS[p]?p:'en';}
+  function loadLang(){lang=pickLang();L=EN;if(lang==='en')return applyLang();
+    var c=null,ref=window.MH_REF||'main';try{c=JSON.parse(localStorage.getItem('mh_lang')||'null');}catch(e){}
+    if(c&&c.lang===lang&&c.t)L=c.t;else{c=null;if(window.MH_LANGS&&window.MH_LANGS[lang])L=window.MH_LANGS[lang];}
+    applyLang();if(c&&c.ref===ref&&ref!=='main')return;
+    var want=lang;fetchText(CDN+ref+'/app/lang/'+lang+'.json',15000).then(function(x){var j=JSON.parse(x);if(want!==lang)return;L=j;try{localStorage.setItem('mh_lang',JSON.stringify({lang:lang,ref:ref,t:j}));}catch(e){}applyLang();}).catch(function(){});}
+  function applyLang(){document.documentElement.lang=lang;$('hint').textContent=t('hint_row');$('ghelp').textContent=t('hint_grid');tick();
+    if(wallNow>=0)$('credit').textContent=t('photo',WALLS[wallNow][1]);
+    if(wxData)renderWeather(wxData);else wxPlaceholder();
+    if(demoMode)buildDemo();else if(catalog.length)rebuild(lastMods,lastApps);
+    if(mode==='menu')again(psel);}
+
   /* ---------- orologio (allineato al minuto) ---------- */
-  var months=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
-  var days=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'],dShort=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
-  function greeting(h){return h<5?'Buonanotte':h<12?'Buongiorno':h<18?'Buon pomeriggio':'Buonasera';}
+  function greeting(h){return t(h<5?'greet_night':h<12?'greet_morning':h<18?'greet_afternoon':'greet_evening');}
+  function dateText(d,o){try{return d.toLocaleDateString(lang,o);}catch(e){return d.toLocaleDateString('en',o);}}
   var tickT=null,wxLine='';
-  function tick(){clearTimeout(tickT);var d=new Date(),hm=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2),ds=days[d.getDay()]+' '+d.getDate()+' '+months[d.getMonth()];
+  function tick(){clearTimeout(tickT);var d=new Date(),hm=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2),ds=dateText(d,{weekday:'long',day:'numeric',month:'long'});
     $('clock').textContent=hm;$('date').textContent=ds;$('greet').textContent=greeting(d.getHours());$('aclock').textContent=hm;$('adate').textContent=ds+(wxLine?' · '+wxLine:'');
     tickT=setTimeout(tick,60000-(d.getSeconds()*1000+d.getMilliseconds())+50);}
   tick();
 
   /* ---------- sfondi: dal commit in uso (jsDelivr), altrimenti dalla cache su disco del servizio; deriva lenta e dissolvenza ---------- */
   var SVC='http://127.0.0.1:'+(NATIVE?8096:8095),svcOk=false,dbg={};
-  var WALLS=[['wall1.jpg','Duomo e Castello dall\'alto · Gianluca, Pexels'],['wall2.jpg','Castello Sforzesco · Mikhail Nilov, Pexels'],
-             ['wall3.jpg','Guglie del Duomo all\'ora blu · A. Buchinskaia, Unsplash'],['wall4.jpg','Duomo al tramonto · Mahya Jahangir, Unsplash']];
-  var A=$('wallA'),B=$('wallB'),front=A,wi=0,kbs=['kb1','kb2','kb3','kb4'],kbi=0,wallSrc={};
+  var WALLS=[['wall1.jpg','Milan from above · Gianluca, Pexels'],['wall2.jpg','Castello Sforzesco, Milan · Mikhail Nilov, Pexels'],
+             ['wall3.jpg','Duomo spires at blue hour · A. Buchinskaia, Unsplash'],['wall4.jpg','Duomo at sunset · Mahya Jahangir, Unsplash']];
+  var A=$('wallA'),B=$('wallB'),front=A,wi=0,kbs=['kb1','kb2','kb3','kb4'],kbi=0,wallSrc={},wallNow=-1,wallT=null;
   function wallUrl(i,fallback){return fallback?SVC+'/asset?name='+WALLS[i][0]:WALLS[i][0];}
   function loadWall(i,cb){if(wallSrc[i])return cb(wallSrc[i]);var img=new Image(),second=false;
     img.onload=function(){wallSrc[i]=img.src;cb(img.src)};img.onerror=function(){if(second)return cb(null);second=true;img.src=wallUrl(i,true)};img.src=wallUrl(i,false);}
-  function showWall(i){loadWall(i,function(src){if(!src){dbg.wallErr=WALLS[i][0];return;}var next=front===A?B:A;next.style.backgroundImage='url("'+src+'")';next.className='wall on '+kbs[kbi++%4];front.className='wall';front=next;$('credit').textContent='Foto: '+WALLS[i][1];});}
-  showWall(0);setInterval(function(){wi=(wi+1)%WALLS.length;showWall(wi);},75000);
+  function showWall(i){loadWall(i,function(src){if(!src){dbg.wallErr=WALLS[i][0];return;}var next=front===A?B:A;next.style.backgroundImage='url("'+src+'")';next.className='wall on '+kbs[kbi++%4];front.className='wall';front=next;wallNow=i;$('credit').textContent=t('photo',WALLS[i][1]);});}
+  // prefs.wall: assente = tutte a rotazione, 0..n = una foto fissa, 'none' = nessuna (resta il fondo scuro con la tinta dell'app)
+  function startWalls(){clearInterval(wallT);var w=prefs.wall;
+    if(w==='none'){A.className='wall';B.className='wall';wallNow=-1;$('credit').textContent='';return;}
+    if(typeof w==='number'&&WALLS[w]){if(wallNow!==w)showWall(w);return;}
+    if(wallNow<0)showWall(wi);wallT=setInterval(function(){wi=(wi+1)%WALLS.length;showWall(wi);},75000);}
+  function wallLabel(){var w=prefs.wall;return w==='none'?t('wall_none'):(typeof w==='number'&&WALLS[w])?WALLS[w][1].split(' · ')[0]:t('wall_all');}
   /* tinta dello sfondo con il colore dell'app selezionata (due strati in dissolvenza). Il gradiente è disegnato su un canvas piccolo
      e mostrato come immagine: la ingrandisce il compositore, senza ridisegnare lo schermo a ogni spostamento. */
   var TA=$('tintA'),TB=$('tintB'),tintFront=TA,lastTint=null,tintUrl={},tintCv=null;
@@ -193,7 +223,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
   function setTint(hex){if(hex===lastTint)return;lastTint=hex;var u=tintImg(hex);if(!u){TA.className='tint';TB.className='tint';return;}
     var next=tintFront===TA?TB:TA;next.src=u;next.className='tint on';tintFront.className='tint';tintFront=next;}
 
-  /* ---------- meteo: Open-Meteo, Berbenno di Valtellina ---------- */
+  /* ---------- meteo: Open-Meteo, per la città scelta dal menu (prefs.wx = {name,lat,lon}); senza città non si chiede nulla ---------- */
   var WICON={
     sun:'<svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="12" fill="#ffd36a"/><g stroke="#ffd36a" stroke-width="4" stroke-linecap="round"><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13.6 13.6l5.7 5.7M44.7 44.7l5.7 5.7M13.6 50.4l5.7-5.7M44.7 19.3l5.7-5.7"/></g></svg>',
     partly:'<svg viewBox="0 0 64 64" fill="none"><circle cx="24" cy="24" r="10" fill="#ffd36a"/><path d="M20 50h26a9 9 0 0 0 1-18 13 13 0 0 0-25 3 7.5 7.5 0 0 0-2 15z" fill="#eef3ff"/></svg>',
@@ -203,27 +233,29 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     snow:'<svg viewBox="0 0 64 64" fill="none"><path d="M18 42h28a10 10 0 0 0 1-20 14 14 0 0 0-27 3 8.5 8.5 0 0 0-2 17z" fill="#dfe6f5"/><g fill="#fff"><circle cx="23" cy="52" r="3"/><circle cx="33" cy="56" r="3"/><circle cx="43" cy="52" r="3"/></g></svg>',
     storm:'<svg viewBox="0 0 64 64" fill="none"><path d="M18 40h28a10 10 0 0 0 1-20 14 14 0 0 0-27 3 8.5 8.5 0 0 0-2 17z" fill="#c9d3ea"/><path d="M34 40l-8 12h8l-4 10 12-14h-8l4-8z" fill="#ffd36a"/></svg>'
   };
-  function wmo(c){if(c===0)return['sun','Sereno'];if(c<=2)return['partly','Poco nuvoloso'];if(c===3)return['cloud','Nuvoloso'];if(c<=48)return['fog','Nebbia'];
-    if(c<=67)return['rain','Pioggia'];if(c<=77)return['snow','Neve'];if(c<=82)return['rain','Rovesci'];if(c<=86)return['snow','Neve'];return['storm','Temporale'];}
-  function renderWeather(j){var cur=j.current,dl=j.daily,w=wmo(cur.weather_code),h='';
+  function wmo(c){var k=c===0?['sun','w_clear']:c<=2?['partly','w_partly']:c===3?['cloud','w_cloudy']:c<=48?['fog','w_fog']:c<=67?['rain','w_rain']:c<=77?['snow','w_snow']:c<=82?['rain','w_showers']:c<=86?['snow','w_snow']:['storm','w_storm'];return [k[0],t(k[1])];}
+  var wxData=null;
+  function wxPlaceholder(k){$('weather').innerHTML='<div class="now"><div class="d"><b>'+esc(t('wx_title'))+'</b>'+esc(t(k||(prefs.wx?'wx_loading':'wx_setup')))+'</div></div>';}
+  function renderWeather(j){wxData=j;var cur=j.current,dl=j.daily,w=wmo(cur.weather_code),h='';
     h+='<div class="now">'+WICON[w[0]]+'<div class="t">'+Math.round(cur.temperature_2m)+'<sup>°C</sup></div></div>';
-    h+='<div class="d"><b>Berbenno di Valtellina</b>'+w[1]+' · max '+Math.round(dl.temperature_2m_max[0])+'° · min '+Math.round(dl.temperature_2m_min[0])+'°</div><div class="days">';
+    h+='<div class="d"><b>'+esc(prefs.wx?prefs.wx.name:'')+'</b>'+w[1]+' · max '+Math.round(dl.temperature_2m_max[0])+'° · min '+Math.round(dl.temperature_2m_min[0])+'°</div><div class="days">';
     for(var i=1;i<=3&&i<dl.time.length;i++){var d=new Date(dl.time[i]+'T12:00:00'),ww=wmo(dl.weather_code[i]);
-      h+='<div class="day"><span class="n">'+dShort[d.getDay()]+'</span>'+WICON[ww[0]]+'<span class="hi">'+Math.round(dl.temperature_2m_max[i])+'°</span><span class="lo">'+Math.round(dl.temperature_2m_min[i])+'°</span></div>';}
-    h+='</div><div class="src">Open-Meteo · '+new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})+'</div>';
+      h+='<div class="day"><span class="n">'+esc(dateText(d,{weekday:'short'}))+'</span>'+WICON[ww[0]]+'<span class="hi">'+Math.round(dl.temperature_2m_max[i])+'°</span><span class="lo">'+Math.round(dl.temperature_2m_min[i])+'°</span></div>';}
+    h+='</div><div class="src">Open-Meteo · '+('0'+new Date().getHours()).slice(-2)+':'+('0'+new Date().getMinutes()).slice(-2)+'</div>';
     $('weather').innerHTML=h;wxLine=Math.round(cur.temperature_2m)+'° '+w[1].toLowerCase();tick();}
-  function loadWeather(){var url='https://api.open-meteo.com/v1/forecast?latitude=46.165&longitude=9.745&daily=weather_code,temperature_2m_max,temperature_2m_min&current=temperature_2m,weather_code&timezone=Europe%2FRome&forecast_days=4';
-    fetch(url).then(function(r){return r.json()}).then(function(j){renderWeather(j);try{localStorage.setItem('mh_wx',JSON.stringify(j))}catch(e){}})
-    .catch(function(){try{var c=localStorage.getItem('mh_wx');if(c)renderWeather(JSON.parse(c));else $('weather').innerHTML='<div class="now"><div class="d"><b>Meteo</b>non disponibile</div></div>';}catch(e){}});}
-  loadWeather();setInterval(loadWeather,3600000);
+  function loadWeather(){var p=prefs.wx;if(!p||typeof p.lat!=='number'){wxData=null;wxLine='';return wxPlaceholder();}
+    var url='https://api.open-meteo.com/v1/forecast?latitude='+p.lat+'&longitude='+p.lon+'&daily=weather_code,temperature_2m_max,temperature_2m_min&current=temperature_2m,weather_code&timezone=auto&forecast_days=4';
+    fetch(url).then(function(r){return r.json()}).then(function(j){if(!j||!j.current)throw new Error('?');renderWeather(j);try{localStorage.setItem('mh_wx',JSON.stringify({at:p.lat+','+p.lon,j:j}))}catch(e){}})
+    .catch(function(){try{var c=JSON.parse(localStorage.getItem('mh_wx')||'null');if(c&&c.at===p.lat+','+p.lon)renderWeather(c.j);else wxPlaceholder('wx_unavailable');}catch(e){}});}
+  setInterval(loadWeather,3600000);
 
   /* ---------- app: catalogo, icone nostre, categorie ---------- */
   var PREFERRED=['netflix','prime video','disney+','dazn','spotify','raiplay','mediaset infinity','now','sky go','apple tv','plex','paramount+','twitch','internet','samsung tv plus','timvision'];
-  var HIDE=['smart hub','gallery','universal guide','e-manual','ambient','samsungtv','samsung health','bixby','multi view','camera','privacy','pc on tv','workspace','remote access','tv plus free','art mode','samsung promotion'];
+  var HIDE=['quiet home','milano home','smart hub','gallery','universal guide','e-manual','ambient','samsungtv','samsung health','bixby','multi view','camera','privacy','pc on tv','workspace','remote access','tv plus free','art mode','samsung promotion'];
   var SELF='samsung-tizen-home';
-  var MODULE_SUB={'tizentube':'TizenTube · senza pubblicità','jellyfin':'film e serie dal PC','moonlight':'giochi in streaming dal PC'};
-  var HDMI_NAMES=['HDMI','Decoder','Console','PlayStation','Xbox','PC','Apple TV','Fire TV','Lettore Blu-ray','Soundbar'];
-  var CAT={streaming:'Streaming',media:'Media e musica',games:'Giochi',sorgenti:'Sorgenti',tv:'TV e sistema',altre:'Altre app'};
+  var MODULE_SUB={'tizentube':'mod_tizentube','jellyfin':'mod_jellyfin','moonlight':'mod_moonlight'};
+  var HDMI_NAMES=['hdmi','settop','console','playstation','xbox','pc','appletv','firetv','bluray','soundbar'],HDMI_BRANDS={playstation:'PlayStation',xbox:'Xbox',pc:'PC',appletv:'Apple TV',firetv:'Fire TV',soundbar:'Soundbar'};
+  var CAT={streaming:'cat_streaming',media:'cat_media',games:'cat_games',sorgenti:'cat_sources',tv:'cat_tv',altre:'cat_other'};
   var CAT_ORDER=['streaming','media','games','sorgenti','tv','altre'];
   var KEY_CAT={netflix:'streaming',primevideo:'streaming',disneyplus:'streaming',dazn:'streaming',raiplay:'streaming',timvision:'streaming',infinity:'streaming',now:'streaming',skygo:'streaming',
     paramountplus:'streaming',discoveryplus:'streaming',rakutentv:'streaming',plutotv:'streaming',chili:'streaming',crunchyroll:'streaming',hbomax:'streaming',tvplus:'streaming',appletv:'streaming',tim:'streaming',
@@ -240,18 +272,13 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
   var items=[],tiles=[],cur=0,modules=[],allApps=[],catalog=[],lastApps=[],lastMods=[],demoMode=false;
   var rowEl=$('row');
 
-  /* preferenze (ordine, nascoste, nomi HDMI, ultima app) e cache del catalogo, salvate sulla TV */
-  var prefs={order:[],hidden:[],hdmi:{},last:null,back:true,lastAt:{}};
-  try{var pp=localStorage.getItem('mh_prefs');if(pp){var o=JSON.parse(pp);for(var k in o)if(o[k]!==null&&o[k]!==undefined)prefs[k]=o[k];}}catch(e){}
-  if(!prefs.lastAt||typeof prefs.lastAt!=='object')prefs.lastAt={};
-  if(prefs.v!==2){prefs.order=[];prefs.hidden=[];prefs.v=2;try{localStorage.setItem('mh_prefs',JSON.stringify(prefs))}catch(e){}}
-  function savePrefs(){try{localStorage.setItem('mh_prefs',JSON.stringify(prefs))}catch(e){}}
-  function hdmiName(n){return prefs.hdmi[n]||'HDMI '+n;}
-  function agoText(t){if(!t)return '';var m=Math.round((Date.now()-t)/60000);if(m<1)return 'adesso';if(m<60)return m+' min fa';var h=Math.round(m/60);if(h<24)return h+' h fa';var d=Math.round(h/24);return d===1?'ieri':d+' giorni fa';}
+  function hdLabel(k){return k==='hdmi'?'HDMI':HDMI_BRANDS[k]||(EN['hd_'+k]?t('hd_'+k):k);}   // un nome salvato da una versione vecchia (testo libero) resta com'è
+  function hdmiName(n){return prefs.hdmi[n]?hdLabel(prefs.hdmi[n]):'HDMI '+n;}
+  function agoText(at){if(!at)return '';var m=Math.round((Date.now()-at)/60000);if(m<1)return t('ago_now');if(m<60)return t('ago_min',m);var h=Math.round(m/60);if(h<24)return t('ago_h',h);var d=Math.round(h/24);return d===1?t('ago_yesterday'):t('ago_days',d);}
 
   /* --- servizio locale (service-core.js) --- */
-  function fetchJson(u,ms){return new Promise(function(res,rej){var t=setTimeout(function(){rej(new Error('timeout'))},ms||3000);
-    fetch(u,NATIVE?{headers:{'X-MH':'1'}}:undefined).then(function(r){return r.json()}).then(function(j){clearTimeout(t);res(j)}).catch(function(e){clearTimeout(t);rej(e)});});}
+  function fetchJson(u,ms,ext){return new Promise(function(res,rej){var t=setTimeout(function(){rej(new Error('timeout'))},ms||3000);
+    fetch(u,NATIVE&&!ext?{headers:{'X-MH':'1'}}:undefined).then(function(r){return r.json()}).then(function(j){clearTimeout(t);res(j)}).catch(function(e){clearTimeout(t);rej(e)});});}
   function ping(){return fetchJson(SVC+'/ping',1500).then(function(j){svcOk=true;dbg.svc=j;return true;}).catch(function(){return false});}
   function waitService(tries){return ping().then(function(ok){if(ok||tries<=0)return ok;return new Promise(function(r){setTimeout(function(){r(waitService(tries-1))},700)});});}
   function ensureService(){if(svcOk)return Promise.resolve(true);return ping().then(function(ok){if(ok||!NATIVE)return ok;try{NATIVE.startService();}catch(e){}return waitService(8);});}
@@ -260,7 +287,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     function once(){return fetchJson(SVC+'/apps',30000).then(function(j){if(j.error){dbg.appsErr=j.error;return null}dbg.appsErr=null;dbg.hub=j.hub;dbg.hubDir=j.hubDir;dbg.hubErr=j.hubError;return j.apps||[]});}
     return once().catch(function(){return new Promise(function(r){setTimeout(r,2000)}).then(once)}).catch(function(e){dbg.appsErr=String(e);return null});});}
   function sysIconUrl(a){if(a.hub)return SVC+'/hubicon?id='+encodeURIComponent(a.hub);if(a.iconOk===true&&a.iconPath)return SVC+'/icon?path='+encodeURIComponent(a.iconPath);return null;}
-  function noService(){toast(NATIVE?'Servizio non attivo: chiudi e riapri Milano Home':'Servizio non attivo: riapri Milano Home da TizenBrew',4000);}
+  function noService(){toast(t(NATIVE?'svc_off_native':'svc_off_brew'),4000);}
   /* Il ritorno a Milano Home lo decide il servizio (watchApp): questa pagina viene sospesa dalla TV quando è dietro un'altra app. */
   var TV_VIEWER='org.tizen.tv-viewer';
   function tvWin(){try{return (NATIVE&&window.tizen&&tizen.tvwindow)||null;}catch(e){return null;}}
@@ -269,19 +296,19 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
   function goSource(it){var tw=tvWin();function viaKey(){sendKey('KEY_HDMI'+it.n);}
     if(!tw)return viaKey();
     try{tizen.systeminfo.getPropertyValue('VIDEOSOURCE',function(v){var on=v.connected||[],s=null;on.concat(v.disconnected||[]).forEach(function(x){if(x.type==='HDMI'&&x.number===it.n)s=x;});
-      if(!s)return toast('HDMI '+it.n+' non presente su questa TV',4000);
-      if(on.indexOf(s)<0)toast('Nessun segnale su HDMI '+it.n+': controlla che il dispositivo sia acceso',5000);
-      try{tw.setSource(s,function(){tizen.application.launch(TV_VIEWER,null,function(e){toast('Sorgente impostata, ma il visore TV non si apre'+(e&&e.message?': '+e.message:''),5000);});},
-        function(e){toast('HDMI '+it.n+': '+((e&&e.message)||'cambio di sorgente rifiutato'),5000);});}catch(e){viaKey();}
+      if(!s)return toast(t('hdmi_absent',it.n),4000);
+      if(on.indexOf(s)<0)toast(t('hdmi_nosignal',it.n),5000);
+      try{tw.setSource(s,function(){tizen.application.launch(TV_VIEWER,null,function(e){toast(t('src_viewer_fail')+(e&&e.message?': '+e.message:''),5000);});},
+        function(e){toast('HDMI '+it.n+': '+((e&&e.message)||t('src_refused')),5000);});}catch(e){viaKey();}
     },viaKey);}catch(e){viaKey();}}
   function launchApp(id,name){ensureService().then(function(ok){if(!ok)return noService();
-    fetchJson(SVC+'/launch?id='+encodeURIComponent(id)+'&back='+(prefs.back===false?0:1),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+name+': '+j.error,3000);}).catch(function(){svcOk=false;toast('Servizio non raggiungibile: riprova',3000)});});}
+    fetchJson(SVC+'/launch?id='+encodeURIComponent(id)+'&back='+(prefs.back===false?0:1),8000).then(function(j){if(j.error)toast(t('open_fail',name,j.error),3000);}).catch(function(){svcOk=false;toast(t('svc_unreachable'),3000)});});}
   function sendKey(key,okMsg){ensureService().then(function(ok){if(!ok)return noService();
-    fetchJson(SVC+'/key?key='+key,40000).then(function(j){if(j.error)toast(shortErr(j.error),5000);else if(okMsg)toast(okMsg);}).catch(function(){toast('Nessuna risposta dalla TV',4000)});});}
-  function shortErr(e){e=String(e||'');if(e.length<120)return e;var m=/codice (\d+)( [^)]+)?/.exec(e);
-    return 'La TV non accetta il canale telecomando'+(m?' (codice '+m[1]+(m[2]||'')+')':'')+': dettagli nel menu ↑ → Diagnostica';}
+    fetchJson(SVC+'/key?key='+key,40000).then(function(j){if(j.error)toast(shortErr(j.error),5000);else if(okMsg)toast(okMsg);}).catch(function(){toast(t('tv_noanswer'),4000)});});}
+  function shortErr(e){e=String(e||'');if(e.length<120)return e;var m=/code (\d+)( [^)]+)?/.exec(e);
+    return t('remote_refused',m?' ('+m[1]+(m[2]||'')+')':'');}
   var offArmed=0;
-  function powerOff(){var now=Date.now();if(now-offArmed>3000){offArmed=now;toast('Premi di nuovo Invio per spegnere la TV',3000);return;}offArmed=0;toast('Spengo…');sendKey('KEY_POWER');}
+  function powerOff(){var now=Date.now();if(now-offArmed>3000){offArmed=now;toast(t('off_confirm'),3000);return;}offArmed=0;toast(t('off_now'));sendKey('KEY_POWER');}
 
   /* --- servizio TizenBrew (ws 8081): moduli e loro avvio; riconnessione su richiesta --- */
   var ws=null,wsWaiters=[],pendingNav=null,modulesRes=null;
@@ -297,16 +324,16 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     return new Promise(function(res){if(!isTV)return res(null);
     modulesRes=res;withWs(function(ok){if(!ok){if(modulesRes){modulesRes=null;res(null);}return;}ws.send(JSON.stringify({type:4,payload:false}));
       setTimeout(function(){if(modulesRes){modulesRes=null;res(null);}},4000);});});}
-  function launchModule(m){if(NATIVE){ensureService().then(function(ok){if(!ok)return noService();fetchJson(SVC+'/module?name='+encodeURIComponent(m.fullName)+'&back='+(prefs.back===false?0:1),8000).then(function(j){if(j.error)toast('Non riesco ad aprire '+(m.appName||m.name)+': '+j.error,4000);}).catch(function(){svcOk=false;toast('Servizio non raggiungibile: riprova',3000)});});return;}
-    withWs(function(ok){if(!ok){toast('TizenBrew non risponde: riapri Milano Home',4000);return;}
+  function launchModule(m){if(NATIVE){ensureService().then(function(ok){if(!ok)return noService();fetchJson(SVC+'/module?name='+encodeURIComponent(m.fullName)+'&back='+(prefs.back===false?0:1),8000).then(function(j){if(j.error)toast(t('open_fail',m.appName||m.name,j.error),4000);}).catch(function(){svcOk=false;toast(t('svc_unreachable'),3000)});});return;}
+    withWs(function(ok){if(!ok){toast(t('brew_noanswer'),4000);return;}
     ws.send(JSON.stringify({type:5,payload:m}));
     if(m.evaluateScriptOnDocumentStart){pendingNav=m;setTimeout(function(){if(pendingNav===m){pendingNav=null;location.href=m.appPath;}},5000);}
     else setTimeout(function(){location.href=m.appPath;},150);});}
   /* TizenBrew: la sua pagina è quella da cui è partito il launcher, quindi basta tornare indietro nella cronologia.
      Prima chiedo al servizio di rileggere i moduli (GetModules con reload), così l'elenco che si trova è aggiornato. */
-  function goTizenBrew(){if(NATIVE){toast('Apro TizenBrew…',2500);ensureService().then(function(ok){if(!ok)return noService();fetchJson(SVC+'/module',8000).then(function(j){if(j.error)toast('TizenBrew non si apre: '+j.error,4000)}).catch(function(){toast('Servizio non raggiungibile',3000)});});return;}
-    toast('Torno a TizenBrew…',2500);
-    var go=function(){if(history.length>1)history.back();else toast('Pagina di TizenBrew non in cronologia: premi Home e riapri TizenBrew',5000);};
+  function goTizenBrew(){if(NATIVE){toast(t('brew_opening'),2500);ensureService().then(function(ok){if(!ok)return noService();fetchJson(SVC+'/module',8000).then(function(j){if(j.error)toast(t('brew_fail',j.error),4000)}).catch(function(){toast(t('svc_unreachable'),3000)});});return;}
+    toast(t('brew_back'),2500);
+    var go=function(){if(history.length>1)history.back();else toast(t('brew_nohistory'),5000);};
     withWs(function(ok){if(ok){try{ws.send(JSON.stringify({type:4,payload:true}));}catch(e){}}setTimeout(go,ok?300:0);});}
 
   /* --- icona di una voce: 1) set nostro (icons.js), 2) Smart Hub / file Tizen (via servizio), 3) nome su tinta --- */
@@ -316,7 +343,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     if(it.icon)return '<div class="ico" style="background:'+bg+'"><div class="txt">'+esc(it.name)+'</div><img alt="" src="'+esc(it.icon)+'" onerror="this.style.display=\'none\'"></div>';
     return '<div class="ico" style="background:'+bg+'"><div class="txt">'+esc(it.name)+'</div></div>';}
   function tintOf(it){var ic=it.key&&ICONS[it.key];if(ic&&ic.tint)return ic.tint;return hueFor(it.name||'')[0];}
-  function subOf(it){if(it.sub)return it.sub;var t=prefs.lastAt[it.id];return t?'ultima apertura '+agoText(t):'';}
+  function subOf(it){if(it.sub)return it.sub;var at=prefs.lastAt[it.id];return at?t('last_opened',agoText(at)):'';}
 
   /* --- riga dei preferiti --- */
   function mkItem(it,idx){var d=document.createElement('div');d.className='item';d.innerHTML=iconHtml(it)+'<div class="nm"></div><div class="sub"></div>';
@@ -334,19 +361,19 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
   function press(el){if(!el)return;el.classList.add('is-pressed');setTimeout(function(){el.classList.remove('is-pressed')},180);}
   function open(it){if(!it)return;
     if(it.kind!=='off'&&it.kind!=='home'&&it.kind!=='brew'&&it.kind!=='settings'){prefs.last=it.id;prefs.lastAt[it.id]=Date.now();savePrefs();}
-    if(!isTV||demoMode){toast('Apro '+it.name+' (anteprima)');return;}
+    if(!isTV||demoMode){toast(t('preview_open',it.name));return;}
     if(it.kind==='app')launchApp(it.id,it.name);else if(it.kind==='module')launchModule(it.mod);
-    else if(it.kind==='hdmi'){toast('Passo a '+it.name+'…',4000);goSource(it);}
+    else if(it.kind==='hdmi'){toast(t('switching',it.name),4000);goSource(it);}
     else if(it.kind==='off')powerOff();
     else if(it.kind==='home')sendKey('KEY_HOME');
     else if(it.kind==='brew')goTizenBrew();
-    else if(it.kind==='settings'){toast('Apro le impostazioni della TV…',3000);sendKey('KEY_MENU');}}
+    else if(it.kind==='settings'){toast(t('opening_settings'),3000);sendKey('KEY_MENU');}}
   function launch(){press(tiles[cur]);open(items[cur]);}
 
   /* --- catalogo completo -> preferenze -> riga visibile e griglia --- */
   function buildCatalog(mods,apps){var cat=[];
     mods.forEach(function(m){if(!m||!m.appName||(m.name||'').toLowerCase().indexOf(SELF)>=0)return;var key=(m.name||'').toLowerCase().replace(/^@[^/]+\//,'');
-      var sub=null,ik='apps';Object.keys(MODULE_SUB).forEach(function(k){if(key.indexOf(k)>=0){sub=MODULE_SUB[k];}});
+      var sub=null,ik='apps';Object.keys(MODULE_SUB).forEach(function(k){if(key.indexOf(k)>=0){sub=t(MODULE_SUB[k]);}});
       if(key.indexOf('tizentube')>=0)ik='youtube';else if(key.indexOf('jellyfin')>=0)ik='jellyfin';else if(key.indexOf('moonlight')>=0)ik='moonlight';
       if(!ICONS[ik])ik=null;
       cat.push({kind:'module',id:'mod:'+m.fullName,mod:m,name:key.indexOf('tizentube')>=0?'YouTube':m.appName,sub:sub,key:ik,cat:(ik&&KEY_CAT[ik])||'media',def:true,rank:key.indexOf('tizentube')>=0?0:50});});
@@ -361,13 +388,13 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
       var store=/^\d{8,}/.test(a.id)||/^[A-Za-z0-9]{10}\./.test(a.id);
       var ik=iconKeyFor(a.name,a.id);
       var hid=dup||a.show===false||HIDE.some(function(h){return n.indexOf(h)>=0});
-      var sub=null;if(ik==='youtube'&&mods.some(function(m){return m&&(m.name||'').toLowerCase().indexOf('tizentube')>=0}))sub='app Samsung, con pubblicità';
+      var sub=null;if(ik==='youtube'&&mods.some(function(m){return m&&(m.name||'').toLowerCase().indexOf('tizentube')>=0}))sub=t('yt_samsung');
       cat.push({kind:'app',id:a.id,name:a.name,sub:sub,icon:sysIconUrl(a),key:ik,cat:(ik&&KEY_CAT[ik])||'altre',def:!hid&&r>=0&&r<6,rank:r>=0?10+r:(store?100:900),sys:dup||generic||!store,dup:dup});});
-    [1,2,3,4].forEach(function(n,i){cat.push({kind:'hdmi',id:'hdmi'+n,n:n,name:hdmiName(n),sub:prefs.hdmi[n]?'HDMI '+n:'cambia sorgente',key:ICONS.hdmi?'hdmi':null,cat:'sorgenti',def:false,rank:60+i});});
-    cat.push({kind:'brew',id:'tizenbrew',name:'TizenBrew',sub:'moduli e aggiornamenti',key:ICONS.tizenbrew?'tizenbrew':null,cat:'tv',def:false,rank:996});
-    cat.push({kind:'settings',id:'settings',name:'Impostazioni TV',sub:'menu Samsung',key:ICONS.settings?'settings':null,cat:'tv',def:false,rank:997});
-    cat.push({kind:'home',id:'home',name:'Home Samsung',sub:'esci dal launcher',key:ICONS.home?'home':null,cat:'tv',def:false,rank:998});
-    cat.push({kind:'off',id:'off',name:'Spegni',sub:'Invio due volte',key:ICONS.power?'power':null,cat:'tv',def:false,rank:999});
+    [1,2,3,4].forEach(function(n,i){cat.push({kind:'hdmi',id:'hdmi'+n,n:n,name:hdmiName(n),sub:prefs.hdmi[n]?'HDMI '+n:t('src_change'),key:ICONS.hdmi?'hdmi':null,cat:'sorgenti',def:false,rank:60+i});});
+    cat.push({kind:'brew',id:'tizenbrew',name:'TizenBrew',sub:t('brew_sub'),key:ICONS.tizenbrew?'tizenbrew':null,cat:'tv',def:false,rank:996});
+    cat.push({kind:'settings',id:'settings',name:t('tv_settings'),sub:t('tv_settings_sub'),key:ICONS.settings?'settings':null,cat:'tv',def:false,rank:997});
+    cat.push({kind:'home',id:'home',name:t('samsung_home'),sub:t('samsung_home_sub'),key:ICONS.home?'home':null,cat:'tv',def:false,rank:998});
+    cat.push({kind:'off',id:'off',name:t('power'),sub:t('power_sub'),key:ICONS.power?'power':null,cat:'tv',def:false,rank:999});
     return cat;}
   function isVisible(c){var h=prefs.hidden.indexOf(c.id)>=0;var inOrder=prefs.order.indexOf(c.id)>=0;return inOrder?!h:(c.def&&!h);}
   function applyPrefs(){var byId={};catalog.forEach(function(c){byId[c.id]=c});var out=[];
@@ -376,17 +403,17 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     items=out.filter(isVisible);if(!items.length)items=out.filter(function(c){return c.def});
     if(!items.length)items=out.filter(function(c){return c.kind==='module'||(c.kind==='app'&&!c.sys)}).slice(0,6);return out;}
   function rebuild(mods,apps){lastMods=mods;lastApps=apps;allApps=apps;catalog=buildCatalog(mods,apps);applyPrefs();render();buildGrid();}
-  function buildDemo(){demoMode=true;catalog=[{name:'YouTube',sub:'TizenTube · senza pubblicità',key:'youtube',kind:'module'},{name:'Netflix',key:'netflix'},{name:'Prime Video',key:'primevideo'},{name:'Disney+',key:'disneyplus'},{name:'DAZN',key:'dazn'},{name:'RaiPlay',key:'raiplay'},
-    {name:'Jellyfin',key:'jellyfin',def:false},{name:'Moonlight',key:'moonlight',def:false},{name:'Xbox',key:'xbox',def:false},{name:'Internet',key:'internet',def:false},{name:'Un\'app senza icona',def:false},
-    {name:'Decoder',kind:'hdmi',n:1,key:'hdmi',sub:'HDMI 1',def:false},{name:'HDMI 2',kind:'hdmi',n:2,key:'hdmi',sub:'cambia sorgente',def:false},
-    {name:'TizenBrew',kind:'brew',key:'tizenbrew',sub:'moduli e aggiornamenti',def:false},{name:'Impostazioni TV',kind:'settings',key:'settings',sub:'menu Samsung',def:false},{name:'Home Samsung',kind:'home',key:'home',def:false},{name:'Spegni',kind:'off',key:'power',sub:'Invio due volte',def:false}]
+  function buildDemo(){demoMode=true;catalog=[{name:'YouTube',sub:t('mod_tizentube'),key:'youtube',kind:'module'},{name:'Netflix',key:'netflix'},{name:'Prime Video',key:'primevideo'},{name:'Disney+',key:'disneyplus'},{name:'DAZN',key:'dazn'},{name:'RaiPlay',key:'raiplay'},
+    {name:'Jellyfin',key:'jellyfin',def:false},{name:'Moonlight',key:'moonlight',def:false},{name:'Xbox',key:'xbox',def:false},{name:'Internet',key:'internet',def:false},{name:t('demo_noicon'),def:false},
+    {name:t('hd_settop'),kind:'hdmi',n:1,key:'hdmi',sub:'HDMI 1',def:false},{name:'HDMI 2',kind:'hdmi',n:2,key:'hdmi',sub:t('src_change'),def:false},
+    {name:'TizenBrew',kind:'brew',key:'tizenbrew',sub:t('brew_sub'),def:false},{name:t('tv_settings'),kind:'settings',key:'settings',sub:t('tv_settings_sub'),def:false},{name:t('samsung_home'),kind:'home',key:'home',def:false},{name:t('power'),kind:'off',key:'power',sub:t('power_sub'),def:false}]
     .map(function(c,i){c.kind=c.kind||'app';c.id='demo'+i;c.def=c.def!==false;c.rank=i;if(!ICONS[c.key])c.key=null;c.cat=(c.key&&KEY_CAT[c.key])||'altre';return c;});applyPrefs();render();buildGrid();}
 
   /* --- griglia di tutte le app (freccia giù): sezioni per categoria, blocchi rettangolari, navigazione a 4 direzioni --- */
   var allEl=$('all'),secEl=$('sections'),gridOpen=false,gsec=[],gi=0,gj=0,gcur=null;
   function gridItems(){return catalog.filter(function(c){return c.kind!=='app'||!c.sys||isVisible(c);});}
   function buildGrid(){var groups={};gridItems().forEach(function(c){var k=c.cat||'altre';(groups[k]=groups[k]||[]).push(c);});
-    gsec=[];CAT_ORDER.forEach(function(k){if(!groups[k])return;groups[k].sort(function(a,b){return a.rank-b.rank||a.name.localeCompare(b.name)});gsec.push({key:k,title:CAT[k],items:groups[k],els:[]});});
+    gsec=[];CAT_ORDER.forEach(function(k){if(!groups[k])return;groups[k].sort(function(a,b){return a.rank-b.rank||a.name.localeCompare(b.name)});gsec.push({key:k,title:t(CAT[k]),items:groups[k],els:[]});});
     secEl.innerHTML='';gsec.forEach(function(s,si){var d=document.createElement('div');d.className='sec';d.innerHTML='<div class="sh">'+esc(s.title)+' <span>'+s.items.length+'</span></div><div class="cards"></div>';
       var cards=d.querySelector('.cards');s.items.forEach(function(it,ii){var c=document.createElement('div');c.className='card';c.innerHTML=iconHtml(it)+'<div class="tx"><div class="nm"></div><div class="sub"></div></div>';
         c.querySelector('.nm').textContent=it.name;c.querySelector('.sub').textContent=subOf(it)||(it.kind==='app'?'':'');c.addEventListener('click',function(){gi=si;gj=ii;gfocus();press(c);open(it);});cards.appendChild(c);s.els.push(c);});
@@ -400,7 +427,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     var secTop=el.parentNode.parentNode.getBoundingClientRect().top-base;
     if(secTop-shift<0)shift=secTop;if(top+h+vh*0.06-shift>vh)shift=top+h+vh*0.06-vh;if(gj===0&&gi===0)shift=0;if(shift<0)shift=0;
     secEl._shift=shift;secEl.style.transform='translateY('+(-shift)+'px)';if(gcur)gcur.style.transform='translate('+(er.left-sr.left)+'px,'+top+'px)';setTint(tintOf(gsec[gi].items[gj]));}
-  function openGrid(){if(!gsec.length){toast('Nessuna app da mostrare');return;}gridOpen=true;
+  function openGrid(){if(!gsec.length){toast(t('no_apps'));return;}gridOpen=true;
     var it=items[cur];gi=0;gj=0;if(it){gsec.forEach(function(s,si){var k=s.items.indexOf(it);if(k>=0){gi=si;gj=k;}});}
     allEl.classList.add('show');$('stage').classList.add('dim');gfocus();}
   function closeGrid(){gridOpen=false;allEl.classList.remove('show');$('stage').classList.remove('dim');focus(cur);}
@@ -412,6 +439,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     if(k===38||k===427){if(gi>0){gi--;gfocus();}else closeGrid();return;}}
 
   /* 1) rendering immediato dalla cache, 2) aggiornamento dai dati freschi; ogni fonte che fallisce conserva l'ultimo dato buono */
+  loadLang();startWalls();loadWeather();
   var cached=null;try{cached=JSON.parse(localStorage.getItem('mh_cache')||'null');}catch(e){}
   if(cached&&cached.apps&&cached.apps.length){rebuild(cached.mods||[],cached.apps);}
   var modsP=loadModules();
@@ -422,88 +450,104 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
     var modsOk=mods!==null,appsOk=apps!==null;
     if(!modsOk)mods=lastMods;if(!appsOk)apps=lastApps;
     if(mods.length||apps.length)rebuild(mods,apps);
-    else toast('Nessuna app trovata · premi ↑ e apri Diagnostica',6000);
+    else toast(t('no_apps_found'),6000);
     if((modsOk||appsOk)&&apps.length){try{localStorage.setItem('mh_cache',JSON.stringify({mods:mods.map(function(m){return {fullName:m.fullName,name:m.name,appName:m.appName,appPath:m.appPath,keys:m.keys,packageType:m.packageType,moduleType:m.moduleType,serviceFile:m.serviceFile,mainFile:m.mainFile,tizenAppId:m.tizenAppId,evaluateScriptOnDocumentStart:m.evaluateScriptOnDocumentStart,version:m.version}}),apps:apps.map(function(a){return {id:a.id,name:a.name,iconPath:a.iconPath,show:a.show,iconOk:a.iconOk,hub:a.hub,hubName:a.hubName,packageId:a.packageId}})}));}catch(e){}}
   });
 
   /* ---------- aggiornamenti: il launcher controlla main, aggiorna la propria cache (per l'apertura successiva) e il servizio (subito) ---------- */
-  var upd={state:'in attesa',sha:null,tries:0,svc:null};
+  var upd={state:'waiting',sha:null,tries:0,svc:null};
   function fetchText(url,ms){return new Promise(function(res,rej){var t=setTimeout(function(){rej(new Error('timeout'))},ms);
     fetch(url,{cache:'no-store',headers:url===API?{Accept:'application/vnd.github.sha'}:{}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text()}).then(function(x){clearTimeout(t);res(x)}).catch(function(e){clearTimeout(t);rej(e)});});}
   function bundle(html,icons){return html.replace('<script src="icons.js"><\/script>','<script>'+icons+'<\/script>');}
   function readLauncherCache(){try{var c=JSON.parse(localStorage.getItem('mh_launcher')||'null');if(c&&c.ref&&c.html)return c;}catch(e){}return null;}
-  function updateService(sha,launcherNew){if(!isTV)return;ensureService().then(function(ok){if(!ok)return;var cur=dbg.svc&&dbg.svc.ref;if(cur===sha){upd.svc='allineato';return;}
-    upd.svc='aggiorno…';fetchJson(SVC+'/update',30000).then(function(r){upd.svc=r.action+(r.error?' ('+r.error+')':'');
-      if(r.action==='updated'){toast('Servizio aggiornato a '+String(r.ref).slice(0,7)+(launcherNew?' · launcher nuovo alla prossima apertura':''),4000);setTimeout(function(){ping().then(function(){loadApps().then(function(a){if(a&&a.length)rebuild(lastMods,a);});});},1500);}
-      else if(r.action==='unsupported'&&!upd.warned){upd.warned=true;toast(r.error,6000);}}).catch(function(e){upd.svc='errore '+e.message});});}
-  function checkUpdate(){if(!isTV&&!window.MH_FORCE_UPDATE)return;upd.tries++;upd.state='controllo…';
+  function updateService(sha,launcherNew){if(!isTV)return;ensureService().then(function(ok){if(!ok)return;var cur=dbg.svc&&dbg.svc.ref;if(cur===sha){upd.svc='up to date';return;}
+    upd.svc='updating…';fetchJson(SVC+'/update',30000).then(function(r){upd.svc=r.action+(r.error?' ('+r.error+')':'');
+      if(r.action==='updated'){toast(t('svc_updated',String(r.ref).slice(0,7))+(launcherNew?t('launcher_next'):''),4000);setTimeout(function(){ping().then(function(){loadApps().then(function(a){if(a&&a.length)rebuild(lastMods,a);});});},1500);}
+      else if(r.action==='unsupported'&&!upd.warned){upd.warned=true;toast(r.error,6000);}}).catch(function(e){upd.svc='error '+e.message});});}
+  function checkUpdate(){if(!isTV&&!window.MH_FORCE_UPDATE)return;upd.tries++;upd.state='checking…';
     fetchText(API,8000).then(function(sha){sha=sha.trim();if(!/^[0-9a-f]{40}$/.test(sha))throw new Error('sha?');upd.sha=sha;
       var c=readLauncherCache();
-      if(sha===window.MH_REF){upd.state='launcher allineato ('+sha.slice(0,7)+')';updateService(sha);return;}
-      if(c&&c.ref===sha){upd.state='già scaricato ('+sha.slice(0,7)+'), attivo alla prossima apertura';updateService(sha);return;}
-      upd.state='scarico '+sha.slice(0,7)+'…';
+      if(sha===window.MH_REF){upd.state='launcher up to date ('+sha.slice(0,7)+')';updateService(sha);return;}
+      if(c&&c.ref===sha){upd.state='already downloaded ('+sha.slice(0,7)+'), active at next start';updateService(sha);return;}
+      upd.state='downloading '+sha.slice(0,7)+'…';
       return Promise.all([fetchText(CDN+sha+'/app/launcher.html',20000),fetchText(CDN+sha+'/app/icons.js',20000)]).then(function(r){
-        if(r[0].length<5000||r[0].indexOf('</html>')<0||r[1].indexOf('MH_ICONS')<0)throw new Error('file incompleti');
-        try{localStorage.setItem('mh_launcher',JSON.stringify({ref:sha,html:bundle(r[0],r[1]),at:Date.now()}));}catch(e){throw new Error('cache non scrivibile: '+e.message)}
-        upd.state='scaricato '+sha.slice(0,7)+', attivo alla prossima apertura';toast('Aggiornamento scaricato: attivo alla prossima apertura di Milano Home',4000);updateService(sha,true);});
-    }).catch(function(e){upd.state='errore: '+(e&&e.message?e.message:e);if(upd.tries<6)setTimeout(checkUpdate,60000);});}
+        if(r[0].length<5000||r[0].indexOf('</html>')<0||r[1].indexOf('MH_ICONS')<0)throw new Error('incomplete files');
+        try{localStorage.setItem('mh_launcher',JSON.stringify({ref:sha,html:bundle(r[0],r[1]),at:Date.now()}));}catch(e){throw new Error('cache not writable: '+e.message)}
+        upd.state='downloaded '+sha.slice(0,7)+', active at next start';toast(t('upd_downloaded'),4000);updateService(sha,true);});
+    }).catch(function(e){upd.state='error: '+(e&&e.message?e.message:e);if(upd.tries<6)setTimeout(checkUpdate,60000);});}
   setTimeout(checkUpdate,4000);
 
   /* ---------- menu (freccia su) ---------- */
   var panel=$('panel'),plist=$('plist'),mode=null,psel=0,prows=[],pickAll=false,pick=[],vis={};
   function showPanel(cls){$('plist-wrap').className=cls;panel.classList.add('show');drawRows();}
-  function openMenu(){mode='menu';psel=0;$('ptitle').textContent='Milano Home '+VERSION;$('pdesc').textContent='Invio per scegliere · Indietro per chiudere';
-    prows=[{t:'Scegli e ordina le app della riga',a:function(){openPicker(false)}},{t:'Nomi degli ingressi HDMI',a:openHdmi},{t:'Mostra tutte le app di sistema',a:function(){openPicker(true)}},
-      {t:'Torna a Milano Home quando esci da un\'app: '+(prefs.back===false?'No':'Sì'),a:function(){prefs.back=prefs.back===false;savePrefs();openMenu();psel=3;drawRows();}},
-      {t:'Ripristina ordine predefinito',a:function(){prefs.order=[];prefs.hidden=[];savePrefs();applyPrefs();render();buildGrid();closePanel();toast('Ordine ripristinato');}},
-      {t:'Riprova il collegamento con la TV (icone e tasti)',a:function(){closePanel();retryHub();}},
-      {t:'Diagnostica',a:function(){closePanel();toggleDebug();}},
-      {t:'Svuota la cache del launcher e ricarica',a:function(){try{localStorage.removeItem('mh_launcher');localStorage.removeItem('mh_cache');}catch(e){}location.reload();}}];
+  function again(i){openMenu();psel=i;drawRows();}
+  function openMenu(){mode='menu';psel=0;$('ptitle').textContent='Quiet Home '+VERSION;$('pdesc').textContent=t('menu_desc');
+    prows=[{t:t('m_pick'),a:function(){openPicker(false)}},{t:t('m_hdmi'),a:openHdmi},{t:t('m_sys'),a:function(){openPicker(true)}},
+      {t:t('m_back',t(prefs.back===false?'no':'yes')),a:function(){prefs.back=prefs.back===false;savePrefs();again(3);}},
+      {t:t('m_reset'),a:function(){prefs.order=[];prefs.hidden=[];savePrefs();applyPrefs();render();buildGrid();closePanel();toast(t('order_reset'));}},
+      {t:t('m_retry'),a:function(){closePanel();retryHub();}},
+      {t:t('m_diag'),a:function(){closePanel();toggleDebug();}},
+      {t:t('m_wall',wallLabel()),a:function(){var w=prefs.wall;if(w==='none')delete prefs.wall;else if(typeof w==='number')prefs.wall=w+1<WALLS.length?w+1:'none';else prefs.wall=0;savePrefs();startWalls();again(7);}},
+      {t:t('m_city',prefs.wx?prefs.wx.name:t('city_none')),a:openCity},
+      {t:t('m_lang',LANGS[lang]),a:function(){var ks=Object.keys(LANGS);prefs.lang=ks[(ks.indexOf(lang)+1)%ks.length];savePrefs();loadLang();again(9);}},
+      {t:t('m_clear'),a:function(){try{localStorage.removeItem('mh_launcher');localStorage.removeItem('mh_cache');localStorage.removeItem('mh_lang');}catch(e){}location.reload();}}];
     showPanel('inner menu');}
-  function retryHub(){ensureService().then(function(ok){if(!ok)return noService();toast('Riprovo il collegamento con la TV…',3000);
-    fetchJson(SVC+'/hubreset',45000).then(function(r){if(r.error)toast('Smart Hub non disponibile: '+shortErr(r.error),6000);else toast('Smart Hub: '+r.apps+' app',3000);
-      ping().then(function(){loadApps().then(function(a){if(a&&a.length)rebuild(lastMods,a);});});}).catch(function(){toast('Nessuna risposta dal servizio',4000)});});}
-  function openPicker(all){mode='pick';pickAll=!!all;psel=0;vis={};$('ptitle').textContent=all?'Tutte le app di sistema':'Scegli e ordina le app della riga';$('pdesc').textContent='Invio = mostra/nascondi nella riga · ← → (o canale ▲▼) = sposta su/giù · Indietro = salva e chiudi';
+  /* città del meteo: campo di testo (sulla TV apre la tastiera di sistema), poi ricerca nel geocoding di Open-Meteo e scelta dall'elenco */
+  var cityRes=null;
+  function openCity(){mode='city';psel=0;cityRes=null;$('ptitle').textContent=t('city_title');$('pdesc').textContent=t('city_desc');showPanel('inner menu');}
+  function searchCity(q){toast(t('city_searching'),8000);
+    fetchJson('https://geocoding-api.open-meteo.com/v1/search?count=6&format=json&language='+lang+'&name='+encodeURIComponent(q),10000,true).then(function(j){if(mode!=='city')return;var r=(j&&j.results)||[];
+      if(!r.length)return toast(t('city_notfound',q),4000);toast('',1);cityRes=r;psel=0;$('pdesc').textContent=t('city_pick');drawRows();}).catch(function(){toast(t('city_notfound',q),4000);});}
+  function cityText(r){return [r.name,r.admin1,r.country].filter(function(x,i,a){return x&&a.indexOf(x)===i}).join(', ');}
+  function retryHub(){ensureService().then(function(ok){if(!ok)return noService();toast(t('retry_hub'),3000);
+    fetchJson(SVC+'/hubreset',45000).then(function(r){if(r.error)toast(t('hub_unavail',shortErr(r.error)),6000);else toast(t('hub_apps',r.apps),3000);
+      ping().then(function(){loadApps().then(function(a){if(a&&a.length)rebuild(lastMods,a);});});}).catch(function(){toast(t('svc_noanswer'),4000)});});}
+  function openPicker(all){mode='pick';pickAll=!!all;psel=0;vis={};$('ptitle').textContent=t(all?'p_sys_title':'m_pick');$('pdesc').textContent=t('pick_desc');
     pick=applyPrefs().filter(function(c){return pickAll||!c.sys||isVisible(c);});showPanel('inner');}
-  function openHdmi(){mode='hdmi';psel=0;$('ptitle').textContent='Nomi degli ingressi HDMI';$('pdesc').textContent='← → cambia nome · Indietro = salva e chiudi';showPanel('inner menu');}
+  function openHdmi(){mode='hdmi';psel=0;$('ptitle').textContent=t('m_hdmi');$('pdesc').textContent=t('hdmi_desc');showPanel('inner menu');}
   function isVisibleRaw(c){return vis[c.id]!==undefined?vis[c.id]:isVisible(c);}
-  function rowsOf(){return mode==='menu'?prows:mode==='hdmi'?[1,2,3,4]:pick;}
+  function rowsOf(){return mode==='menu'?prows:mode==='hdmi'?[1,2,3,4]:mode==='city'?(cityRes||[]):pick;}
   function drawRows(){plist.innerHTML='';var rows=rowsOf();
+    if(mode==='city'&&!cityRes){plist.innerHTML='<input class="tin" id="cityin" type="text" autocomplete="off">';var inp=$('cityin');setTimeout(function(){try{inp.focus();}catch(e){}},60);return;}
     var rowH=(mode==='pick'?2.6:3.3)*window.innerWidth/100,listH=plist.clientHeight||rowH*10,N=Math.max(3,Math.floor(listH/rowH)),start=Math.max(0,Math.min(psel-Math.floor(N/2),rows.length-N));
     rows.slice(start,start+N).forEach(function(r,k){var i=start+k;var d=document.createElement('div');d.className='item'+(i===psel?' sel':'');
       if(mode==='menu'){d.textContent=r.t;}
+      else if(mode==='city'){d.textContent=cityText(r);}
       else if(mode==='hdmi'){d.innerHTML='<span class="nm"></span><span class="id"></span>';d.querySelector('.nm').textContent='HDMI '+r+'  →  '+hdmiName(r);d.querySelector('.id').textContent='← →';}
-      else{var on=isVisibleRaw(r);d.className+=(on?' on':' hid');d.innerHTML='<span class="ck">'+(on?'✓':'')+'</span><span class="nm"></span><span class="id"></span><span class="mv">◀ su · ▶ giù</span>';d.querySelector('.nm').textContent=r.name+(r.dup?' (duplicato)':(r.sys&&pickAll)?' (sistema)':'');d.querySelector('.id').textContent=(pickAll&&r.kind==='app')?r.id:'';}
+      else{var on=isVisibleRaw(r);d.className+=(on?' on':' hid');d.innerHTML='<span class="ck">'+(on?'✓':'')+'</span><span class="nm"></span><span class="id"></span><span class="mv">'+esc(t('mv'))+'</span>';d.querySelector('.nm').textContent=r.name+(r.dup?t('dup'):(r.sys&&pickAll)?t('sys'):'');d.querySelector('.id').textContent=(pickAll&&r.kind==='app')?r.id:'';}
       plist.appendChild(d);});
     if(rows.length>N){var pos=document.createElement('div');pos.className='pos';pos.textContent=(psel+1)+' / '+rows.length;plist.appendChild(pos);}
-    if(!rows.length){var e=document.createElement('div');e.className='item';e.textContent='Nessuna voce';plist.appendChild(e);}}
+    if(!rows.length){var e=document.createElement('div');e.className='item';e.textContent=t('empty');plist.appendChild(e);}}
   // salva solo le voci toccabili dalla lista corrente; conserva ordine/nascoste delle voci non in lista
   function commitOrder(){if(!pick.length)return;var ids=pick.map(function(c){return c.id});
     var keepO=prefs.order.filter(function(id){return ids.indexOf(id)<0}),keepH=prefs.hidden.filter(function(id){return ids.indexOf(id)<0});
     var order=[],hidden=[];pick.forEach(function(c){var on=isVisibleRaw(c);if(on||c.def||prefs.order.indexOf(c.id)>=0){order.push(c.id);if(!on)hidden.push(c.id);}});
     prefs.order=order.concat(keepO);prefs.hidden=hidden.concat(keepH);savePrefs();applyPrefs();render();buildGrid();}
   function closePanel(){if(mode==='pick')commitOrder();
-    if(mode==='hdmi'){savePrefs();catalog.forEach(function(c){if(c.kind==='hdmi'){c.name=hdmiName(c.n);c.sub=prefs.hdmi[c.n]?'HDMI '+c.n:'cambia sorgente';}});applyPrefs();render();buildGrid();}
-    panel.classList.remove('show');mode=null;vis={};}
+    if(mode==='hdmi'){savePrefs();catalog.forEach(function(c){if(c.kind==='hdmi'){c.name=hdmiName(c.n);c.sub=prefs.hdmi[c.n]?'HDMI '+c.n:t('src_change');}});applyPrefs();render();buildGrid();}
+    panel.classList.remove('show');mode=null;vis={};cityRes=null;plist.innerHTML='';}
   function panelKey(k){var rows=rowsOf();
+    if(mode==='city'&&!cityRes){var inp=$('cityin'),v=inp?inp.value.replace(/^\s+|\s+$/g,''):'';   // 65376/65385: Fatto e Annulla della tastiera della TV
+      if(k===10009||k===27||k===65385){closePanel();return;}if((k===13||k===65376)&&v){if(inp)inp.blur();searchCity(v);return;}return false;}
     if(k===10009||k===27||k===8){closePanel();return;}
     if(!rows.length)return;
     if(k===40){psel=(psel+1)%rows.length;drawRows();}else if(k===38){psel=(psel-1+rows.length)%rows.length;drawRows();}
-    else if(k===13){if(mode==='menu')rows[psel].a();else if(mode==='pick'){var c=pick[psel];vis[c.id]=!isVisibleRaw(c);drawRows();}}
+    else if(k===13){if(mode==='menu')rows[psel].a();else if(mode==='city'){var c0=rows[psel];prefs.wx={name:c0.name,lat:c0.latitude,lon:c0.longitude};savePrefs();closePanel();toast(t('city_set',c0.name),3000);loadWeather();}else if(mode==='pick'){var c=pick[psel];vis[c.id]=!isVisibleRaw(c);drawRows();}}
     else if((k===37||k===39||k===427||k===428)&&mode==='pick'){var j=(k===37||k===427)?psel-1:psel+1;if(j<0||j>=pick.length)return;var tmp=pick[psel];pick[psel]=pick[j];pick[j]=tmp;psel=j;drawRows();}
-    else if((k===37||k===39)&&mode==='hdmi'){var n=rows[psel],idx=HDMI_NAMES.indexOf(prefs.hdmi[n]||'HDMI');idx=(idx+(k===39?1:-1)+HDMI_NAMES.length)%HDMI_NAMES.length;
-      if(HDMI_NAMES[idx]==='HDMI')delete prefs.hdmi[n];else prefs.hdmi[n]=HDMI_NAMES[idx];drawRows();}}
+    else if((k===37||k===39)&&mode==='hdmi'){var n=rows[psel],idx=Math.max(0,HDMI_NAMES.indexOf(prefs.hdmi[n]||'hdmi'));idx=(idx+(k===39?1:-1)+HDMI_NAMES.length)%HDMI_NAMES.length;
+      if(HDMI_NAMES[idx]==='hdmi')delete prefs.hdmi[n];else prefs.hdmi[n]=HDMI_NAMES[idx];drawRows();}}
   function toggleDebug(){var d=$('debug');if(d.classList.contains('show')){d.classList.remove('show');return;}
-    d.textContent='MILANO HOME '+VERSION+' · diagnostica · leggo lo stato del servizio…';d.classList.add('show');
+    d.textContent='QUIET HOME '+VERSION+' · diagnostics · reading the service state…';d.classList.add('show');
     ping().then(function(){if(d.classList.contains('show'))drawDebug();});}
+  // testo tecnico, solo in inglese: serve a chi apre una segnalazione su GitHub
   function drawDebug(){var d=$('debug');var s=dbg.svc||{},hub=s.hub||{},lc=readLauncherCache();
-    var lines=['MILANO HOME '+VERSION+' · commit '+(window.MH_REF?String(window.MH_REF).slice(0,7):'locale')+' da '+(window.MH_SOURCE||'file')+(NATIVE?' · app nativa':'')+' · diagnostica  (↑ ↓ scorri · Indietro chiude)',
-      'aggiornamento: '+upd.state+(upd.svc?' · servizio: '+upd.svc:'')+' · cache launcher: '+(lc?lc.ref.slice(0,7):'assente'),
-      'servizio: '+(svcOk?'ok v'+s.v+' commit '+(s.ref?String(s.ref).slice(0,7):'?')+' node '+s.node+(s.dir?' · dati: '+s.dir:'')+(s.boot?' · avviato da '+s.boot.source+(s.boot.lastError?' · '+s.boot.lastError:''):' · bootstrap 1.x'):'assente')+'  ·  moduli: '+(dbg.modsOk?modules.map(function(m){return m.name}).join(', '):'non ricevuti')+'  ·  app: '+allApps.length+(dbg.appsErr?'  ·  errore: '+dbg.appsErr:'')+'  ·  in cache: '+(cached&&cached.apps?cached.apps.length:0),
-      'Smart Hub: '+(dbg.hub!==undefined&&dbg.hub!==null?dbg.hub+' app dal canale':'canale non disponibile')+(dbg.hubErr?' ('+dbg.hubErr+')':'')+' · cartella icone: '+(hub.dir!==undefined&&hub.dir!==null?hub.dir+' app':'non leggibile'+(hub.dirError?' ('+hub.dirError+')':''))+' · abbinate: '+allApps.filter(function(a){return a.hub}).length+' · IP TV: '+(s.lan||'?')+(hub.chan?' · canale ok su '+hub.chan.host+(hub.chan.tls?':8002':':8001')+' '+(hub.chan.api||'v2'):'')+(hub.bad&&hub.bad.length?' · scartati: '+hub.bad.join(', '):''),
-      'tentativi canale: '+((hub.attempts||[]).map(function(a){return a.host+':'+a.port+'/'+(a.api||'v2')+(a.token?' token':'')+' → '+a.result+(a.events&&a.events.length?' ['+a.events.join(', ')+']':'');}).join('  |  ')||'nessuno'),
-      'ritorno a Milano Home: '+(s.lastReturn?s.lastReturn.method+(s.lastReturn.error?' ('+s.lastReturn.error+')':' ok')+' · '+agoText(s.lastReturn.at):'mai')+(NATIVE?' · finestra TV: '+(function(){try{var w=tizen.tvwindow.getSource('MAIN');return w.type+' '+w.number;}catch(e){return 'non leggibile ('+e.name+')';}})():'')+(dbg.wallErr?' · sfondo non caricato: '+dbg.wallErr:'')];
-    allApps.forEach(function(a){lines.push((a.show===false?'[nascosta] ':'')+(a.hub?'[hub '+a.hub+'] ':'')+(a.iconOk===true?'[icona] ':a.iconOk===false?'[icona assente] ':'')+(iconKeyFor(a.name,a.id)?'[nostra] ':'')+a.name+'  ·  '+a.id);});
+    var lines=['QUIET HOME '+VERSION+' · commit '+(window.MH_REF?String(window.MH_REF).slice(0,7):'local')+' from '+(window.MH_SOURCE||'file')+(NATIVE?' · native app':'')+' · language '+lang+' · diagnostics  (↑ ↓ scroll · Back closes)',
+      'update: '+upd.state+(upd.svc?' · service: '+upd.svc:'')+' · launcher cache: '+(lc?lc.ref.slice(0,7):'none'),
+      'service: '+(svcOk?'ok v'+s.v+' commit '+(s.ref?String(s.ref).slice(0,7):'?')+' node '+s.node+(s.dir?' · data: '+s.dir:'')+(s.boot?' · started from '+s.boot.source+(s.boot.lastError?' · '+s.boot.lastError:''):' · bootstrap 1.x'):'missing')+'  ·  modules: '+(dbg.modsOk?modules.map(function(m){return m.name}).join(', '):'not received')+'  ·  apps: '+allApps.length+(dbg.appsErr?'  ·  error: '+dbg.appsErr:'')+'  ·  cached: '+(cached&&cached.apps?cached.apps.length:0),
+      'Smart Hub: '+(dbg.hub!==undefined&&dbg.hub!==null?dbg.hub+' apps from the channel':'channel not available')+(dbg.hubErr?' ('+dbg.hubErr+')':'')+' · icon folder: '+(hub.dir!==undefined&&hub.dir!==null?hub.dir+' apps':'not readable'+(hub.dirError?' ('+hub.dirError+')':''))+' · matched: '+allApps.filter(function(a){return a.hub}).length+' · TV IP: '+(s.lan||'?')+(hub.chan?' · channel ok on '+hub.chan.host+(hub.chan.tls?':8002':':8001')+' '+(hub.chan.api||'v2'):'')+(hub.bad&&hub.bad.length?' · discarded: '+hub.bad.join(', '):''),
+      'channel attempts: '+((hub.attempts||[]).map(function(a){return a.host+':'+a.port+'/'+(a.api||'v2')+(a.token?' token':'')+' → '+a.result+(a.events&&a.events.length?' ['+a.events.join(', ')+']':'');}).join('  |  ')||'none'),
+      'return to Quiet Home: '+(s.lastReturn?s.lastReturn.method+(s.lastReturn.error?' ('+s.lastReturn.error+')':' ok')+' · '+agoText(s.lastReturn.at):'never')+(NATIVE?' · TV window: '+(function(){try{var w=tizen.tvwindow.getSource('MAIN');return w.type+' '+w.number;}catch(e){return 'not readable ('+e.name+')';}})():'')+(dbg.wallErr?' · background not loaded: '+dbg.wallErr:'')];
+    allApps.forEach(function(a){lines.push((a.show===false?'[hidden] ':'')+(a.hub?'[hub '+a.hub+'] ':'')+(a.iconOk===true?'[icon] ':a.iconOk===false?'[no icon] ':'')+(iconKeyFor(a.name,a.id)?'[ours] ':'')+a.name+'  ·  '+a.id);});
     d.textContent=lines.join('\n');d.scrollTop=0;}
 
   /* ---------- telecomando ---------- */
@@ -511,7 +555,7 @@ html,body{width:100%;height:100%;margin:0;background:var(--bg);color:var(--fg);f
   document.addEventListener('keydown',function(e){var k=e.keyCode;
     $('hint').classList.remove('fade');clearTimeout(hintT);hintT=setTimeout(function(){$('hint').classList.add('fade')},12000);
     var dd=$('debug');if(dd.classList.contains('show')){if(k===10009||k===27||k===8||k===13)dd.classList.remove('show');else if(k===40)dd.scrollTop+=dd.clientHeight*0.8;else if(k===38)dd.scrollTop-=dd.clientHeight*0.8;e.preventDefault();return;}
-    if(mode){panelKey(k);e.preventDefault();return;}
+    if(mode){if(panelKey(k)!==false)e.preventDefault();return;}
     if(gridOpen){gridKey(k);e.preventDefault();return;}
     if(k===39){focus(cur+1);e.preventDefault();}else if(k===37){focus(cur-1);e.preventDefault();}
     else if(k===13){launch();e.preventDefault();}

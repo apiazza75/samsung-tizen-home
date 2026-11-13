@@ -1,9 +1,9 @@
 {
   "name": "samsung-tizen-home",
-  "version": "3.0.4",
-  "description": "Milano Home: launcher pulito per Samsung Tizen, modulo per TizenBrew",
+  "version": "3.1.0",
+  "description": "Quiet Home: a clean, quiet home screen for Samsung Smart TVs (Tizen). TizenBrew module and native app.",
   "packageType": "app",
-  "appName": "Milano Home",
+  "appName": "Quiet Home",
   "appPath": "app/index.html",
   "keys": [
     "ChannelUp",

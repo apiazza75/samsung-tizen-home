@@ -45,9 +45,9 @@ async function main() {
   let p = await waitPing(8000);
   ok(!!p, 'servizio risponde a /ping', svc.log);
   if (p) {
-    ok(p.v === '3.0.4', 'versione 3.0.4', p.v);
+    ok(p.v === '3.1.0', 'versione 3.1.0', p.v);
     ok(p.ref === SHA1, 'core dal commit di main (' + SHA1.slice(0, 7) + ')', p.ref);
-    ok(p.boot && p.boot.source === 'rete', 'avviato dalla rete', p.boot);
+    ok(p.boot && p.boot.source === 'network', 'avviato dalla rete', p.boot);
     ok(p.lan === '127.0.0.2', 'IP di rete rilevato', p.lan);
     ok(fs.existsSync(path.join(data, 'milanohome-core.js')) && JSON.parse(fs.readFileSync(path.join(data, 'milanohome-core.json'), 'utf8')).ref === SHA1, 'core salvato su disco con il commit');
     ok(p.tizen === true && /^v\d+/.test(p.node), 'tizen visibile nella sandbox, node ' + p.node);
@@ -81,7 +81,7 @@ async function main() {
   await ctlTv('running=11101200001.Netflix:1'); await sleep(2600); await ctlTv('running=11101200001.Netflix:0'); await sleep(3400);
   let launched = []; try { launched = JSON.parse(fs.readFileSync(path.join(data, 'launched.json'), 'utf8')); } catch (e) {}
   const back = launched.filter(l => l.id === 'xvvl3S1bvH.TizenBrewStandalone');
-  ok(back.length === 1 && back[0].method === 'appcontrol' && back[0].data[0].key === 'module' && JSON.parse(back[0].data[0].value[0]).moduleName === 'apiazza75/samsung-tizen-home' && JSON.parse(back[0].data[0].value[0]).moduleType === 'gh', 'uscita dall\'app: TizenBrew riaperto con app control sul modulo Milano Home', launched);
+  ok(back.length === 1 && back[0].method === 'appcontrol' && back[0].data[0].key === 'module' && JSON.parse(back[0].data[0].value[0]).moduleName === 'apiazza75/samsung-tizen-home' && JSON.parse(back[0].data[0].value[0]).moduleType === 'gh', 'uscita dall\'app: TizenBrew riaperto con app control sul modulo Quiet Home', launched);
   p = (await get(SVC + '/ping')).json; ok(p.lastReturn && p.lastReturn.method === 'appcontrol' && !p.lastReturn.error, 'ritorno registrato in /ping', p.lastReturn);
   r = await get(SVC + '/launch?id=x.fail', fromPage); ok(r.code === 500 && /refused/.test(r.json.error), 'launch rifiutato dalla TV riportato');
   r = await get(SVC + '/shutdown', fromPage); ok(r.code === 403, 'shutdown dalla pagina: 403');
@@ -92,7 +92,7 @@ async function main() {
 
   console.log('\n[S2] aggiornamento a caldo: main avanza a un commit con un core diverso');
   const over = tmpDir(); fs.mkdirSync(path.join(over, 'app'));
-  fs.writeFileSync(path.join(over, 'service-core.js'), fs.readFileSync(path.join(ROOT, 'service-core.js'), 'utf8').replace("var VERSION = '3.0.4';", "var VERSION = '2.0.0-next';"));
+  fs.writeFileSync(path.join(over, 'service-core.js'), fs.readFileSync(path.join(ROOT, 'service-core.js'), 'utf8').replace("var VERSION = '3.1.0';", "var VERSION = '2.0.0-next';"));
   await ctlNet('sha=' + SHA2 + '&override=' + SHA2 + ':' + over);
   r = await get(SVC + '/update', fromPage, 30000); ok(r.code === 200 && r.json.action === 'updated' && r.json.ref === SHA2, '/update: updated → ' + SHA2.slice(0, 7), r.json);
   await sleep(2500);
@@ -132,7 +132,7 @@ async function main() {
   ok(apps.code === 200 && apps.json.hub === 6, 'elenco Smart Hub ottenuto', apps.json && apps.json.hubError);
   p = (await get(SVC + '/ping')).json;
   ok(p.hub.chan && p.hub.chan.host === '127.0.0.2' && p.hub.chan.tls === false, 'ricordata la combinazione buona: IP di rete, 8001', p.hub.chan);
-  ok(p.hub.attempts.length === 5 && /chiusa dalla TV.*codice 1001 tls-closed/.test(p.hub.attempts[0].result) && p.hub.attempts[1].api === 'v3' && p.hub.attempts[4].result === 'ok' && p.hub.attempts[4].api === 'v2', 'tentativi registrati con codice e motivo di chiusura (4 chiusi, poi IP di rete 8001 v2 ok)', p.hub.attempts.map(a => a.host + ':' + a.port + '/' + a.api + ' ' + a.result));
+  ok(p.hub.attempts.length === 5 && /closed by the TV.*code 1001 tls-closed/.test(p.hub.attempts[0].result) && p.hub.attempts[1].api === 'v3' && p.hub.attempts[4].result === 'ok' && p.hub.attempts[4].api === 'v2', 'tentativi registrati con codice e motivo di chiusura (4 chiusi, poi IP di rete 8001 v2 ok)', p.hub.attempts.map(a => a.host + ':' + a.port + '/' + a.api + ' ' + a.result));
   await stopService(svc);
 
   console.log('\n[S6] canale chiuso ovunque + cartella icone Smart Hub leggibile: icone senza canale');
@@ -140,21 +140,21 @@ async function main() {
   const hubDir = path.join(data, 'FirstScreen'); fs.mkdirSync(hubDir); ['11101200001', '3201907018807', 'org.tizen.browser'].forEach(id => { fs.mkdirSync(path.join(hubDir, id)); fs.writeFileSync(path.join(hubDir, id, '250x250.png'), fixture); });
   startService(data, { MH_HUB_DIR: hubDir }); p = await waitPing(8000);
   apps = await get(SVC + '/apps', {}, 25000);
-  ok(apps.code === 200 && apps.json.hub === null && /chiusa dalla TV/.test(apps.json.hubError || ''), 'canale non disponibile riportato', apps.json && { hub: apps.json.hub, err: apps.json.hubError });
+  ok(apps.code === 200 && apps.json.hub === null && /closed by the TV/.test(apps.json.hubError || ''), 'canale non disponibile riportato', apps.json && { hub: apps.json.hub, err: apps.json.hubError });
   if (apps.json && apps.json.apps) { const byId = {}; apps.json.apps.forEach(a => { byId[a.id] = a; });
     ok(apps.json.hubDir === 3 && byId['11101200001.Netflix'].hub === '11101200001' && byId['3201907018807.Dazn'].hub === '3201907018807' && byId['org.tizen.browser'].hub === 'org.tizen.browser' && !byId['111299001912.YouTube'].hub, 'abbinamenti dalla cartella icone (3 su 3)', apps.json.hubDir); }
   icon = await get(SVC + '/hubicon?id=3201907018807', {}, 20000); ok(icon.code === 200 && icon.buf.equals(fixture), 'icona letta dalla cartella Smart Hub, identica');
   p = (await get(SVC + '/ping')).json;
-  ok(p.hub.dir === 3 && p.hub.attempts.length === 8 && p.hub.attempts.every(a => /chiusa dalla TV.*1001/.test(a.result)), '8 tentativi (2 host × 2 porte × v2/v3) tutti chiusi con codice 1001', p.hub.attempts.map(a => a.host + ':' + a.port + '/' + a.api + ' ' + a.result));
-  ok(/chiusa dalla TV/.test(p.hub.channelError), 'errore canale in /ping');
-  r = await get(SVC + '/key?key=KEY_HOME', fromPage, 60000); ok(r.code === 500 && /chiusa dalla TV/.test(r.json.error), 'tasto con canale chiuso: errore chiaro', r.json);
+  ok(p.hub.dir === 3 && p.hub.attempts.length === 8 && p.hub.attempts.every(a => /closed by the TV.*1001/.test(a.result)), '8 tentativi (2 host × 2 porte × v2/v3) tutti chiusi con codice 1001', p.hub.attempts.map(a => a.host + ':' + a.port + '/' + a.api + ' ' + a.result));
+  ok(/closed by the TV/.test(p.hub.channelError), 'errore canale in /ping');
+  r = await get(SVC + '/key?key=KEY_HOME', fromPage, 60000); ok(r.code === 500 && /closed by the TV/.test(r.json.error), 'tasto con canale chiuso: errore chiaro', r.json);
   const tA = Date.now(); apps = await get(SVC + '/apps', {}, 25000); ok(apps.code === 200 && Date.now() - tA < 1500, '/apps risponde subito dopo un fallimento recente del canale (' + (Date.now() - tA) + ' ms)');
   await ctlTv('mode=ok'); r = await get(SVC + '/hubreset', fromPage, 60000); ok(r.code === 200 && r.json.apps === 6 && !r.json.error, '/hubreset dopo che la TV accetta: canale ripristinato', r.json);
   await stopService(svc);
 
   console.log('\n[S7] rifiuto esplicito (ms.channel.unauthorized): niente cascata sulle altre porte');
   await ctlTv('mode=unauth&reset=1'); data = tmpDir(); startService(data); p = await waitPing(8000);
-  apps = await get(SVC + '/apps', {}, 25000); ok(/consenti/i.test(apps.json.hubError || ''), 'messaggio che spiega cosa fare sulla TV', apps.json && apps.json.hubError);
+  apps = await get(SVC + '/apps', {}, 25000); ok(/allow "Quiet Home"/i.test(apps.json.hubError || ''), 'messaggio che spiega cosa fare sulla TV', apps.json && apps.json.hubError);
   p = (await get(SVC + '/ping')).json; ok(p.hub.attempts.length === 1 && /unauthorized/.test(p.hub.attempts[0].result), 'un solo tentativo', p.hub.attempts);
   await stopService(svc);
 
@@ -162,7 +162,7 @@ async function main() {
   const oldFile = path.join(data, 'service-old.js'); fs.writeFileSync(oldFile, cp.execSync('git show 9e90648:service.js', { cwd: ROOT }));
   await ctlTv('mode=ok&reset=1'); await ctlNet('sha=' + SHA2); startService(tmpDir(), {}, oldFile); p = await waitPing(8000);
   ok(!!p && p.v === '2.0.0-next' && p.ref === SHA2 && p.boot === null, 'core 2.0 in esecuzione sotto il bootstrap 1.5.1', p && { v: p.v, ref: p.ref, boot: p.boot });
-  r = await get(SVC + '/update', fromPage); ok(r.code === 200 && r.json.action === 'unsupported' && /riavvia TizenBrew/.test(r.json.error), '/update: spiega che serve riavviare TizenBrew', r.json);
+  r = await get(SVC + '/update', fromPage); ok(r.code === 200 && r.json.action === 'unsupported' && /restart TizenBrew/.test(r.json.error), '/update: spiega che serve riavviare TizenBrew', r.json);
   apps = await get(SVC + '/apps', {}, 20000); ok(apps.code === 200 && apps.json.hub === 6, 'canale ok con la TV in modalità ok (8001 e 8002 entrambe aperte)');
   await stopService(svc);
 
@@ -204,7 +204,7 @@ async function main() {
   ok(p.hub.bad.length === 1 && /v3$/.test(p.hub.bad[0]) && p.hub.chan && p.hub.chan.api === 'v2', 'v3 segnato come inutilizzabile, v2 ricordato', { bad: p.hub.bad, chan: p.hub.chan });
   await stopService(svc);
 
-  console.log('\n[S13] TV senza API app control: ritorno a Milano Home con il launch semplice');
+  console.log('\n[S13] TV senza API app control: ritorno a Quiet Home con il launch semplice');
   await ctlTv('mode=ok&reset=1'); data = tmpDir(); startService(data, { MH_FAKE_NO_APPCONTROL: '1' }); p = await waitPing(8000);
   r = await get(SVC + '/launch?id=11101200001.Netflix&back=1', fromPage); await ctlTv('running=11101200001.Netflix:1'); await sleep(2600); await ctlTv('running=11101200001.Netflix:0'); await sleep(3400);
   launched = JSON.parse(fs.readFileSync(path.join(data, 'launched.json'), 'utf8')); const back2 = launched.filter(l => l.id === 'xvvl3S1bvH.TizenBrewStandalone');
