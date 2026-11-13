@@ -5,7 +5,7 @@
    ES5 per Node vecchi. Gli endpoint che agiscono sulla TV accettano solo richieste dalla pagina di TizenBrew. */
 (function () {
   'use strict';
-  var VERSION = '3.0.2';
+  var VERSION = '3.0.3';
   // commit in uso e bootstrap: li passa service.js come argomenti (nella sandbox di TizenBrew `global` non esiste)
   var REF = (function () { try { return (typeof MH_REF !== 'undefined' && MH_REF) || Function('return this')().MH_REF || null; } catch (e) { return null; } })();
   var BOOT = (function () { try { return (typeof MH_BOOT !== 'undefined' && MH_BOOT) || Function('return this')().MH_BOOT || null; } catch (e) { return null; } })();
@@ -83,17 +83,35 @@
       tizen.application.launchAppControl(ctrl, SELF_APP, function () { log('launcher in primo piano (app control)'); }, function (e) { plain('appcontrol: ' + (e && e.message)); });
     } catch (e) { plain('appcontrol: ' + e.message); }
   }
+  /* Ritorno a Milano Home. Lo decide il servizio: la pagina del launcher viene sospesa dalla TV circa 20 s dopo essere finita dietro
+     un'altra app (misurato sulla QN90A), quindi i suoi timer non bastano. L'API REST della TV dice il vero ("visible") solo se
+     interrogata con l'id Smart Hub numerico; con l'id Tizen risponde sempre running/visible false. Le app che restano sospese dopo
+     l'uscita (Netflix, Prime Video, YouTube) si riconoscono solo così. Per le altre: finché l'app è tra i contesti in esecuzione.
+     shortcut: tabella a mano degli id Smart Hub (verificati sulla QN90A); un'app fuori tabella che resta sospesa all'uscita non fa
+     tornare. L'elenco completo arriverebbe dal canale Smart Hub, se la TV tornasse a rispondere. */
+  var HUB_IDS = { 'org.tizen.netflix-app': '3201907018807', 'org.tizen.primevideo': '3201910019365', '9Ur5IzDKqV.TizenYouTube': '111299001912',
+    'com.samsung.tv.cobalt-yt': '111299001912', 'MCmYXNxgcu.DisneyPlus': '3201901017640', 'yu1NM3vHsU.DAZN': '3201806016390',
+    'rJeHak5zRg.Spotify': '3201606009684', '5im3FztIhW.RaiTVtizen': '111399002034' };
+  // cb(true|false|null): in primo piano, non più, non si sa (si riprova al giro dopo)
+  function inFront(w, cb) { var id = w.id;
+    getJson('/api/v2/applications/' + encodeURIComponent(HUB_IDS[id] || id), function (err, j) {
+      if (!err && j && (j.visible === true || j.visible === 'true')) { w.rest = true; return cb(true); }
+      if (HUB_IDS[id] || w.rest) return cb(   // w.rest: l'API ha già detto "visible" per questo id, quindi le si crede anche quando dice di no
+        err || !j || typeof j.visible === 'undefined' ? null : false);
+      try { tizen.application.getAppsContext(function (l) { cb(l.some(function (c) { return c.appId === id; })); }, function () { cb(null); }); } catch (e) { cb(null); }
+    });
+  }
   function watchApp(id) {
     if (watch) { clearInterval(watch.timer); watch = null; }
-    var w = { id: id, seenRunning: false, started: Date.now(), timer: null };
+    var w = { id: id, seen: false, rest: false, started: Date.now(), timer: null };
+    function stop() { clearInterval(w.timer); if (watch === w) watch = null; }
     w.timer = setInterval(function () {
-      if (Date.now() - w.started > 6 * 3600 * 1000) { clearInterval(w.timer); watch = null; return; }
-      getJson('/api/v2/applications/' + encodeURIComponent(id), function (err, j) {
-        if (err || !j || typeof j.running === 'undefined') { if (Date.now() - w.started > 30000 && !w.seenRunning) { clearInterval(w.timer); watch = null; } return; }
-        var running = j.running === true || j.running === 'true';
-        if (running) { w.seenRunning = true; return; }
-        if (w.seenRunning) { clearInterval(w.timer); watch = null; setTimeout(bringLauncherBack, 600); }
-        else if (Date.now() - w.started > 30000) { clearInterval(w.timer); watch = null; }
+      if (Date.now() - w.started > 6 * 3600 * 1000) return stop();
+      inFront(w, function (f) {
+        if (watch !== w) return;
+        if (f) { w.seen = true; return; }
+        if (f === false && w.seen) { stop(); setTimeout(bringLauncherBack, 600); }
+        else if (!w.seen && Date.now() - w.started > 30000) stop();
       });
     }, 2000);
     watch = w;
@@ -460,7 +478,7 @@
     if (path === '/key') { var k = (q.key || '').replace(/[^A-Z0-9_]/g, ''); if (!k) return json(res, 400, { error: 'key?' });
       return sendRemoteKey(k, function (err) { if (err) return json(res, 500, { error: String(err) }); json(res, 200, { ok: true }); }); }
     if (path === '/modules') return json(res, 200, { modules: brewModules() });
-    if (path === '/module') return openBrew(q.name || '', function (err, how) { if (err) return json(res, 500, { error: String(err) }); json(res, 200, { ok: true, method: how }); });
+    if (path === '/module') return openBrew(q.name || '', function (err, how) { if (err) return json(res, 500, { error: String(err) }); json(res, 200, { ok: true, method: how }); if (q.back === '1') watchApp(BREW_APP); });
     if (path === '/hubreset') { hub.apps = null; hub.at = 0; hub.error = null; hub.failAt = 0; attempts = []; badCombos = {}; var st = loadState(); delete st.chan; saveState(st); if (chan) chan.close();
       return hubList(function (err, list) { json(res, 200, { error: err ? String(err) : null, apps: list ? list.length : null, attempts: attempts }); }); }
     json(res, 404, { error: 'not found' });

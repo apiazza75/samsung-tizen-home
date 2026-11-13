@@ -73,6 +73,17 @@ non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
   * Pacchetto: config.xml cambia (privilegio, app-control) quindi va REINSTALLATO; il launcher 3.0.2 su un pacchetto 3.0.0/3.0.1
     resta fluido ma per HDMI ripiega sul tasto e non ha il ritorno. Strumenti di misura usati (non nel repository): tracce e
     abbinamento livello → elemento con i domini Tracing, LayerTree e DOM del CDP.
+- 3.0.3 (13/11, dopo la seconda prova dell'utente: "uscendo da Netflix o Prime Video con Indietro tenuto premuto resto sulla home
+  Samsung"). Pacchetto 3.0.2 firmato e installato; la 3.0.3 cambia solo launcher e servizio, quindi arriva da sola (niente reinstallazione).
+  MISURATO sulla TV: (1) i timer della pagina si fermano ~20 s dopo che la pagina è finita dietro un'altra app, nonostante
+  `background-support="enable"`: il ritorno "dalla pagina" della 3.0.2 funzionava solo nelle prove brevi. (2) Con la sorgente
+  sul sintonizzatore (`TV 1`, lo stato normale di questa TV) `tvwindow.getSource().signal` resta null anche col visore in primo
+  piano; `getVideoResolution` e `getRect` non distinguono nulla. (3) L'API REST dice il vero se interrogata con l'id Smart Hub
+  numerico: Netflix `3201907018807` → running/visible true da aperta, running true e visible false dopo il ritorno a Milano Home;
+  RaiPlay `111399002034` true/true da aperta mentre con `5im3FztIhW.RaiTVtizen` resta false/false. (4) Il canale telecomando
+  non risponde nemmeno dal Mac (8001 e 8002: nessun messaggio in 35 s), quindi l'elenco Smart Hub non si ottiene e gli id
+  numerici stanno in una tabella a mano nel servizio. Correzione: il ritorno torna nel servizio (`watchApp` + `inFront`), la
+  parte nella pagina è stata tolta. Non si è potuto premere "Indietro" da remoto: l'uscita vera la conferma l'utente.
 - Prima del 13/11 (sessione cloud): nessuna modifica alla TV. In questa sessione cloud l'esecuzione di `tizen.js` è stata bloccata (codice di terzi)
   e `download.tizen.org` / `developer.samsung.com` non erano raggiungibili: nulla di quel percorso è stato eseguito, solo letto.
 - PR #12 (ramo claude/sweet-babbage-utar0a): questi documenti; in bozza, da completare con l'esito e unire alla fine.

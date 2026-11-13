@@ -26,14 +26,14 @@ function rest(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (u.pathname === '/__ctl') {
     if (u.searchParams.get('mode')) state.mode = u.searchParams.get('mode');
-    if (u.searchParams.get('running')) { const [id, v] = u.searchParams.get('running').split(':'); state.running[id] = v === '1'; }
+    if (u.searchParams.get('running')) { const [id, v] = u.searchParams.get('running').split(':'); state.running[id] = v === '1' ? true : v === 's' ? 'suspended' : false; } // s: come Netflix dopo l'uscita, running ma non visible
     if (u.searchParams.get('consent')) state.consentDelay = +u.searchParams.get('consent');
     if (u.searchParams.get('reset')) { state.keys = []; state.conns = []; }
     res.end(JSON.stringify({ ok: true, mode: state.mode }));
   } else if (u.pathname === '/__keys') res.end(JSON.stringify(state.keys));
   else if (u.pathname === '/__conns') res.end(JSON.stringify(state.conns));
   else if (u.pathname === '/api/v2/') res.end(JSON.stringify({ device: { developerIP: '127.0.0.1', developerMode: '1', name: 'Fake TV' } }));
-  else if (u.pathname.startsWith('/api/v2/applications/')) { const id = decodeURIComponent(u.pathname.split('/').pop()); res.end(JSON.stringify({ id, running: !!state.running[id], visible: !!state.running[id] })); }
+  else if (u.pathname.startsWith('/api/v2/applications/')) { const id = decodeURIComponent(u.pathname.split('/').pop()); const v = state.running[id]; res.end(JSON.stringify({ id, running: !!v, visible: v === true })); }
   else { res.statusCode = 404; res.end('{}'); }
 }
 
