@@ -29,7 +29,15 @@ non lasciate in PR. Il nome del modulo sulla TV NON deve più cambiare.
   8) MODIFICA ALLA TV (dopo conferma): installazione;
   9) le cinque verifiche sulla TV elencate in APP-NATIVA.md, una alla volta;
   10) MODIFICA ALLA TV (dopo conferma): IP del computer rimesso com'era, riavvio; verificare che TizenBrew funzioni ancora.
-- Fatto al 13/11: nessuna modifica alla TV. In questa sessione cloud l'esecuzione di `tizen.js` è stata bloccata (codice di terzi)
+- ESITO della sessione locale (13/11): TV a 192.168.1.10 (cavo; non più .41), developerMode 1, IP del computer era 127.0.0.1.
+  Strumenti in ~/.milanohome-tools (tizen.js @45b0010, adbhost, tv.js = DUID/copia/installazione, make-cert.js). L'utente ha
+  messo l'IP del computer a 192.168.1.30 e riavviato: DUID RLCEPZPTZ35ZE. Certificato Samsung (Public, scade 13/11/2027) in
+  ~/.milanohome-cert (author.p12, distributor.p12, password.txt: fuori dal repository, DA CONSERVARE); nessun problema TLS.
+  Pacchetto da main (3c8a253) firmato con `tizenjs build` e INSTALLATO con `vd_appinstall MilanoHome` ("install completed");
+  la TV lo elenca (MilanoHome.Launcher 3.0.0). Il formato di firma di tizen.js (URI con %2F, SHA-512) è quindi accettato da
+  Tizen 6. device-profile.xml NON copiato sulla TV: non è servito (e il file prodotto da tizen.js è una copia del certificato).
+  Restano: le cinque verifiche sulla TV; rimettere l'IP del computer a 127.0.0.1 e riavviare; verificare TizenBrew.
+- Prima del 13/11 (sessione cloud): nessuna modifica alla TV. In questa sessione cloud l'esecuzione di `tizen.js` è stata bloccata (codice di terzi)
   e `download.tizen.org` / `developer.samsung.com` non erano raggiungibili: nulla di quel percorso è stato eseguito, solo letto.
 - PR #12 (ramo claude/sweet-babbage-utar0a): questi documenti; in bozza, da completare con l'esito e unire alla fine.
 
