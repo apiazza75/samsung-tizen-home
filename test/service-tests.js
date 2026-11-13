@@ -45,7 +45,7 @@ async function main() {
   let p = await waitPing(8000);
   ok(!!p, 'servizio risponde a /ping', svc.log);
   if (p) {
-    ok(p.v === '3.0.3', 'versione 3.0.3', p.v);
+    ok(p.v === '3.0.4', 'versione 3.0.4', p.v);
     ok(p.ref === SHA1, 'core dal commit di main (' + SHA1.slice(0, 7) + ')', p.ref);
     ok(p.boot && p.boot.source === 'rete', 'avviato dalla rete', p.boot);
     ok(p.lan === '127.0.0.2', 'IP di rete rilevato', p.lan);
@@ -92,7 +92,7 @@ async function main() {
 
   console.log('\n[S2] aggiornamento a caldo: main avanza a un commit con un core diverso');
   const over = tmpDir(); fs.mkdirSync(path.join(over, 'app'));
-  fs.writeFileSync(path.join(over, 'service-core.js'), fs.readFileSync(path.join(ROOT, 'service-core.js'), 'utf8').replace("var VERSION = '3.0.3';", "var VERSION = '2.0.0-next';"));
+  fs.writeFileSync(path.join(over, 'service-core.js'), fs.readFileSync(path.join(ROOT, 'service-core.js'), 'utf8').replace("var VERSION = '3.0.4';", "var VERSION = '2.0.0-next';"));
   await ctlNet('sha=' + SHA2 + '&override=' + SHA2 + ':' + over);
   r = await get(SVC + '/update', fromPage, 30000); ok(r.code === 200 && r.json.action === 'updated' && r.json.ref === SHA2, '/update: updated → ' + SHA2.slice(0, 7), r.json);
   await sleep(2500);
@@ -210,6 +210,9 @@ async function main() {
   launched = JSON.parse(fs.readFileSync(path.join(data, 'launched.json'), 'utf8')); const back2 = launched.filter(l => l.id === 'xvvl3S1bvH.TizenBrewStandalone');
   ok(back2.length === 2 && back2[0].method === 'appcontrol' && back2[1].method === 'launch', 'app control rifiutato → launch semplice', back2);
   p = (await get(SVC + '/ping')).json; ok(p.lastReturn && p.lastReturn.method === 'launch' && /appcontrol/.test(p.lastReturn.error), 'ripiego registrato in /ping', p.lastReturn);
+  console.log('\n[S12b] lancio senza callback di successo (come sulla QN90A): risposta comunque e ritorno attivo');
+  r = await get(SVC + '/launch?id=muta.App&back=1', fromPage); p = (await get(SVC + '/ping')).json;
+  ok(r.json && r.json.ok && p.watching === 'muta.App', 'risposta ok e osservatore partito', { r: r.json, watching: p.watching });
   await stopService(svc);
 
   console.log('\nRisultato: ' + pass + ' verifiche superate, ' + fail + ' fallite' + (fail ? '\n - ' + failures.join('\n - ') : ''));

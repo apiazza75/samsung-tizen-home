@@ -5,7 +5,7 @@
    ES5 per Node vecchi. Gli endpoint che agiscono sulla TV accettano solo richieste dalla pagina di TizenBrew. */
 (function () {
   'use strict';
-  var VERSION = '3.0.3';
+  var VERSION = '3.0.4';
   // commit in uso e bootstrap: li passa service.js come argomenti (nella sandbox di TizenBrew `global` non esiste)
   var REF = (function () { try { return (typeof MH_REF !== 'undefined' && MH_REF) || Function('return this')().MH_REF || null; } catch (e) { return null; } })();
   var BOOT = (function () { try { return (typeof MH_BOOT !== 'undefined' && MH_BOOT) || Function('return this')().MH_BOOT || null; } catch (e) { return null; } })();
@@ -115,6 +115,16 @@
       });
     }, 2000);
     watch = w;
+  }
+
+  /* Risposta a un lancio. Sulla QN90A, dal servizio, la callback di successo di tizen.application.launch non arriva anche se l'app
+     si apre (misurato): senza questo la richiesta restava appesa e l'osservatore del ritorno non partiva mai. Quindi si osserva
+     subito e si risponde alla callback oppure dopo 1,5 s; se l'app non si è aperta l'osservatore si ferma da solo dopo 30 s. */
+  function launchReply(res, id, back) {
+    var done = false, t = setTimeout(function () { fin(null, 'senza conferma'); }, 1500);
+    function fin(err, how) { if (done) return; done = true; clearTimeout(t); if (err) json(res, 500, { error: err }); else json(res, 200, { ok: true, method: how }); }
+    if (back === '1') watchApp(id); else if (watch) { clearInterval(watch.timer); watch = null; }
+    return fin;
   }
 
   /* --- HTTP: utilità --- */
@@ -471,14 +481,15 @@
     if (path === '/launch') {
       if (!hasTizen()) return json(res, 500, { error: 'no tizen' });
       if (!q.id) return json(res, 400, { error: 'id?' });
-      try { tizen.application.launch(q.id, function () { json(res, 200, { ok: true }); if (q.back === '1') watchApp(q.id); else if (watch) { clearInterval(watch.timer); watch = null; } }, function (e) { json(res, 500, { error: e && e.message ? e.message : 'launch failed' }); }); }
-      catch (e) { json(res, 500, { error: e.message }); }
+      var fin = launchReply(res, q.id, q.back);
+      try { tizen.application.launch(q.id, function () { fin(); }, function (e) { fin(e && e.message ? e.message : 'launch failed'); }); }
+      catch (e) { fin(e.message); }
       return;
     }
     if (path === '/key') { var k = (q.key || '').replace(/[^A-Z0-9_]/g, ''); if (!k) return json(res, 400, { error: 'key?' });
       return sendRemoteKey(k, function (err) { if (err) return json(res, 500, { error: String(err) }); json(res, 200, { ok: true }); }); }
     if (path === '/modules') return json(res, 200, { modules: brewModules() });
-    if (path === '/module') return openBrew(q.name || '', function (err, how) { if (err) return json(res, 500, { error: String(err) }); json(res, 200, { ok: true, method: how }); if (q.back === '1') watchApp(BREW_APP); });
+    if (path === '/module') { var finB = launchReply(res, BREW_APP, q.back); return openBrew(q.name || '', function (err, how) { finB(err ? String(err) : null, how); }); }
     if (path === '/hubreset') { hub.apps = null; hub.at = 0; hub.error = null; hub.failAt = 0; attempts = []; badCombos = {}; var st = loadState(); delete st.chan; saveState(st); if (chan) chan.close();
       return hubList(function (err, list) { json(res, 200, { error: err ? String(err) : null, apps: list ? list.length : null, attempts: attempts }); }); }
     json(res, 404, { error: 'not found' });
